@@ -18,64 +18,77 @@ parkea_app/
 
 ## Requisitos
 
+- Git.
 - Python 3.11 o superior.
 - Node.js 24.15 o superior (o 22.22.3 o superior) y npm.
-- Docker Desktop con Docker Compose, o una instancia PostgreSQL 14 o superior.
+- Docker Desktop iniciado, con Docker Compose.
 
-## Arranque en Windows
+## Clonar y ejecutar en Windows
 
-Abre PowerShell en `Documentos\parkea_app`.
+Los pasos siguientes crean una base de desarrollo independiente en el computador de quien clone el repositorio. No necesitan tu archivo `.env`, tu base `Datasistempark` ni tus credenciales.
 
-### 1. Inicializar PostgreSQL
+Abre PowerShell y ejecuta:
+
+```powershell
+git clone https://github.com/jdcpa1978-IUD/parkea.git
+Set-Location parkea
+```
+
+### 1. Iniciar la base de datos local
+
+Desde la carpeta `parkea`:
 
 ```powershell
 docker compose up -d postgres
+docker compose ps
 ```
 
-En una base nueva, Docker aplica `database\schema.sql` y crea celdas de ejemplo. El usuario, contraseña y base `parkea` del Compose son solamente para desarrollo local.
+Espera a que el servicio `postgres` aparezca como `healthy`. En la primera ejecución Docker crea la base `parkea`, aplica `database\schema.sql` y genera las 150 celdas de ejemplo. El usuario y la contraseña configurados en `docker-compose.yml` son exclusivamente para desarrollo local, no para producción. Docker conserva los datos en un volumen local; cada clon usa su propia base.
 
-Si usas PostgreSQL externo, ejecuta `database\schema.sql` con `psql` y configura su cadena de conexión en `backend\.env`. Para la instancia de pgAdmin de la captura, usa tu usuario PostgreSQL, la base existente `Datasistempark` y la contraseña que configuraste localmente; no compartas esa contraseña. Si contiene caracteres especiales, codifícalos para una URL.
+### 2. Configurar e iniciar la API
 
-Para alinear una base `Datasistempark` ya existente sin recrearla, primero detén el backend y crea una copia de seguridad. En pgAdmin, selecciona esa base, abre **Query Tool**, carga `database\migrations\001_align_existing_schema.sql` y ejecútalo una sola vez. La migración conserva los datos, interpreta las fechas existentes como hora local de Bogotá, limita las placas a seis caracteres alfanuméricos y añade las restricciones e índices que faltaban. Los clientes continúan almacenándose en `usuarios` con rol `CLIENTE`; esta migración no crea una tabla `clientes`.
-
-### 2. Configurar y arrancar el backend
+En la carpeta `parkea`, crea la configuración local y una clave secreta de desarrollo:
 
 ```powershell
 Copy-Item backend\.env.example backend\.env
-$jwtKey = python -c "import secrets; print(secrets.token_urlsafe(48))"
+$jwtKey = py -c "import secrets; print(secrets.token_urlsafe(48))"
 (Get-Content backend\.env) -replace '^JWT_SECRET_KEY=.*$', "JWT_SECRET_KEY=$jwtKey" | Set-Content backend\.env
 Set-Location backend
 py -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-python -m uvicorn src.main:app --reload
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m uvicorn src.main:app --reload
 ```
 
-La API se sirve en `http://localhost:8000`; la documentación interactiva está en `http://localhost:8000/docs`. El esquema se instala desde el script SQL antes de arrancar la API.
+La API se sirve en `http://localhost:8000`; comprueba su documentación interactiva en `http://localhost:8000/docs`.
 
 ### 3. Crear el administrador inicial
 
-En otra terminal, desde `Documentos\parkea_app`:
+Abre otra ventana de PowerShell, navega a la carpeta clonada y ejecuta:
 
 ```powershell
 Set-Location backend
-.\.venv\Scripts\Activate.ps1
-python scripts\create_admin.py
+.\.venv\Scripts\python.exe scripts\create_admin.py
 ```
 
 El comando solicita documento, nombre y contraseña sin mostrarla. Solo permite crear el primer administrador.
 
 ### 4. Arrancar Angular
 
-En otra terminal:
+Abre una tercera ventana de PowerShell y, desde la carpeta clonada, ejecuta:
 
 ```powershell
 Set-Location frontend
-npm install
+npm ci
 npm start
 ```
 
-Abre `http://localhost:4200` e inicia sesión con el administrador creado. Desde la aplicación puedes registrar operadores, clientes, sus vehículos, celdas, mensualidades e incidentes. En **Vehículos**, el formulario permite asociar un cliente existente o registrar en una sola transacción un cliente nuevo junto con su vehículo. El alta conjunta solo solicita documento y nombre completo; genera una clave inicial aleatoria, la guarda con BCrypt y se la muestra al administrador una sola vez para compartirla con el cliente.
+Abre `http://localhost:4200` e inicia sesión con el administrador. Desde la aplicación puedes registrar operadores, clientes, vehículos, celdas, mensualidades e incidentes. En **Vehículos**, puedes asociar un cliente existente o registrar en una transacción un cliente con su vehículo. El alta conjunta solicita documento y nombre completo; genera una contraseña inicial aleatoria y se la muestra al administrador una sola vez para compartirla con el cliente.
+
+Para apagar PostgreSQL, ejecuta `docker compose stop postgres` desde la carpeta clonada. Para iniciar de nuevo, usa `docker compose start postgres`. Los datos se conservan en el volumen local.
+
+### Usar otra instancia PostgreSQL
+
+Si no quieres usar Docker, crea una base PostgreSQL vacía, ejecuta `database\schema.sql` una sola vez y configura `DATABASE_URL` en `backend\.env` con la dirección de esa base. No ejecutes el esquema inicial sobre una base que ya tenga las tablas de PARKEA. Si vas a conectar una base existente como `Datasistempark`, primero realiza una copia de seguridad y aplica una sola vez `database\migrations\001_align_existing_schema.sql` desde **Query Tool** en pgAdmin. La migración interpreta las fechas previas como hora local de Bogotá. No compartas ni subas el `.env` ni credenciales de una base real.
 
 ## Roles y operaciones
 
@@ -108,9 +121,18 @@ Las búsquedas exactas por placa usan un índice. La placa acepta únicamente de
 
 ```powershell
 Set-Location backend
-.\.venv\Scripts\Activate.ps1
-python -m unittest discover -s test -v
+.\.venv\Scripts\python.exe -m unittest discover -s test -v
+Set-Location ..\frontend
+npm ci
+npm run build
 ```
+
+## Solución de problemas
+
+- Si el puerto `5432` ya está ocupado, detén el otro servicio PostgreSQL o cambia el puerto publicado en `docker-compose.yml` y el puerto de `DATABASE_URL` en `backend\.env` para que coincidan.
+- Si `docker compose` no responde, inicia Docker Desktop y espera a que termine de cargar.
+- Si la API no inicia, comprueba que PostgreSQL esté `healthy` y que el archivo `backend\.env` exista y tenga una clave `JWT_SECRET_KEY` generada localmente.
+- Si `npm ci` falla, comprueba la versión de Node.js con `node --version` y utiliza una de las versiones indicadas arriba.
 
 ## Notas antes de producción
 
