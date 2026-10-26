@@ -1,0 +1,477 @@
+:root {
+  --figma-blue: #3676e8;
+  --figma-blue-dark: #245fce;
+  --figma-ink: #202b3a;
+  --figma-muted: #8792a3;
+  --figma-line: #e8ecf2;
+  --figma-canvas: #f5f7fb;
+  --figma-green: #42ac7c;
+  --figma-red: #e16c70;
+  --figma-yellow: #e8ae47;
+}
+
+body {
+  color: var(--figma-ink);
+  background: var(--figma-canvas);
+}
+
+.sidebar {
+  background: #fff;
+  color: #6e7b8c;
+  border-right: 1px solid var(--figma-line);
+}
+
+.brand {
+  color: #1f2a39;
+  font-size: 18px;
+  letter-spacing: 0;
+}
+
+.brand-mark,
+.brand-mark.small {
+  background: var(--figma-blue);
+  color: #fff;
+  border-radius: 10px;
+}
+
+.brand small,
+.profile small {
+  color: #99a3b0;
+}
+
+.nav-label,
+.eyebrow {
+  color: #929dad;
+}
+
+.nav-item {
+  color: #687587;
+  border-radius: 7px;
+}
+
+.nav-item:hover,
+.nav-item.selected {
+  color: var(--figma-blue-dark);
+  background: #edf3ff;
+}
+
+.nav-item.selected:before {
+  background: var(--figma-blue);
+}
+
+.live-dot,
+.status-pip,
+.live-status i {
+  background: var(--figma-green);
+}
+
+.profile,
+.logout {
+  border-color: var(--figma-line);
+}
+
+.profile {
+  color: var(--figma-ink);
+}
+
+.avatar {
+  background: #eaf1ff;
+  color: var(--figma-blue-dark);
+}
+
+.logout {
+  color: #728094;
+}
+
+.main-area {
+  background: var(--figma-canvas);
+}
+
+.topbar {
+  border-color: var(--figma-line);
+}
+
+.topbar .eyebrow {
+  color: var(--figma-muted);
+}
+
+.topbar h1,
+.section-intro h2,
+.panel-heading h3 {
+  color: var(--figma-ink);
+}
+
+.welcome {
+  color: var(--figma-ink);
+  background: #fff;
+  border: 1px solid var(--figma-line);
+}
+
+.welcome:after {
+  border-color: #e4edff;
+  box-shadow: 0 0 0 30px #3676e80a, 0 0 0 65px #3676e807;
+}
+
+.welcome .eyebrow,
+.welcome h2 span,
+.welcome-icon {
+  color: var(--figma-blue);
+}
+
+.welcome p:last-child {
+  color: #7f8b9b;
+}
+
+.stat-card,
+.panel {
+  border-color: var(--figma-line);
+  border-radius: 9px;
+  box-shadow: 0 2px 8px #253c5b08;
+}
+
+.stat-card > strong {
+  color: var(--figma-ink);
+}
+
+.stat-icon.amber,
+.quick-icon.amber {
+  color: #c98d29;
+  background: #fff5df;
+}
+
+.stat-icon.blue,
+.quick-icon.blue {
+  color: var(--figma-blue);
+  background: #edf3ff;
+}
+
+.stat-icon.green,
+.quick-icon.green {
+  color: #32976a;
+  background: #eaf7f0;
+}
+
+.stat-icon.violet {
+  color: #8566bb;
+  background: #f4effb;
+}
+
+.text-button {
+  color: var(--figma-blue);
+}
+
+.plate {
+  border-color: #dfe5ed;
+  background: #f8faff;
+  color: #354357;
+}
+
+.quick-action:hover {
+  background: #f9fbff;
+}
+
+.cell-chip {
+  border-color: #d6efdf;
+  background: #eaf7f0;
+  color: #31885f;
+}
+
+.cell-chip.occupied {
+  border-color: #f2d2d1;
+  background: #fff0ef;
+  color: #c55c62;
+}
+
+.cell-chip.maintenance {
+  border-color: #f1e0bb;
+  background: #fff7e5;
+  color: #a87b28;
+}
+
+.notice {
+  border-color: #cdebd9;
+  background: #eff9f3;
+}
+
+.notice.error {
+  border-color: #f1d1d0;
+  background: #fff3f2;
+}
+
+.legend {
+  color: #778496;
+}
+
+.available-dot {
+  background: var(--figma-green);
+}
+
+.occupied-dot {
+  background: var(--figma-red);
+}
+
+.maint-dot {
+  background: var(--figma-yellow);
+}
+
+.parking-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 220px;
+  gap: 15px;
+  align-items: start;
+}
+
+.cell-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(65px, 1fr));
+  gap: 9px;
+}
+
+.map-cell {
+  min-width: 0;
+  align-items: center;
+  border: 1px solid #d9eee2;
+  border-radius: 7px;
+  background: #eef8f2;
+  text-align: center;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+  cursor: pointer;
+}
+
+.map-cell:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px #253c5b12;
+}
+
+.map-cell.active {
+  border-color: var(--figma-blue);
+  box-shadow: 0 0 0 2px #3676e825;
+}
+
+.map-car {
+  color: var(--figma-green);
+}
+
+.map-cell.occupied {
+  border-color: #f0d3d2;
+  background: #fff1f0;
+}
+
+.map-cell.occupied .map-car,
+.map-cell.occupied .cell-state {
+  color: var(--figma-red);
+}
+
+.map-cell.maintenance {
+  border-color: #f1e2be;
+  background: #fff8e9;
+}
+
+.map-cell.maintenance .map-car,
+.map-cell.maintenance .cell-state {
+  color: #bc8a2e;
+}
+
+.map-cell b {
+  color: #354256;
+}
+
+.map-cell small {
+  color: #8390a0;
+}
+
+.cell-state {
+  color: #38956b;
+}
+
+.cell-inspector {
+  border: 1px solid var(--figma-line);
+  border-radius: 8px;
+  background: #fff;
+  padding: 14px;
+}
+
+.new-client-fields {
+  grid-column: 1 / -1;
+  padding: 14px;
+  border: 1px solid #dfe8f5;
+  border-radius: 8px;
+  background: #f8faff;
+}
+
+.new-client-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 13px;
+}
+
+.new-client-heading b {
+  display: block;
+  color: var(--figma-ink);
+  font-size: 11px;
+}
+
+.new-client-heading small {
+  display: block;
+  margin-top: 3px;
+  color: var(--figma-muted);
+  font-size: 9px;
+}
+
+.inspector-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.inspector-top .map-car {
+  font-size: 22px;
+}
+
+.cell-inspector h3 {
+  margin: 12px 0 4px;
+  font: 700 16px Manrope, sans-serif;
+  color: var(--figma-ink);
+}
+
+.cell-inspector > p {
+  margin: 0;
+  color: var(--figma-muted);
+  font-size: 10px;
+}
+
+.inspector-divider {
+  height: 1px;
+  background: var(--figma-line);
+  margin: 14px 0;
+}
+
+.inspector-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.inspector-detail span {
+  color: var(--figma-muted);
+  font-size: 9px;
+}
+
+.inspector-detail b {
+  color: var(--figma-ink);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.inspector-status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border-radius: 6px;
+  background: #eff8f3;
+  color: #41865f;
+  padding: 9px;
+  font-size: 9px;
+}
+
+.inspector-status i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--figma-green);
+}
+
+.inspector-status i.busy {
+  background: var(--figma-red);
+}
+
+.inspector-status i.offline {
+  background: var(--figma-yellow);
+}
+
+.inspector-button {
+  width: 100%;
+  margin-top: 10px;
+  color: var(--figma-blue-dark);
+  border-color: #d7e4ff;
+  background: #f6f9ff;
+}
+
+.primary {
+  color: #fff;
+  background: var(--figma-blue);
+}
+
+.primary:hover {
+  background: var(--figma-blue-dark);
+}
+
+.secondary {
+  border-color: #dfe5ed;
+  color: #536176;
+  background: #fff;
+}
+
+.form-grid input:focus,
+.form-grid select:focus,
+.form-grid textarea:focus,
+.login-card input:focus {
+  border-color: var(--figma-blue);
+  box-shadow: 0 0 0 3px #3676e81c;
+}
+
+.state-tag {
+  background: #eaf7f0;
+  color: #35885f;
+}
+
+.state-tag.inactive {
+  background: #fff6e2;
+  color: #98712a;
+}
+
+.login-screen {
+  background: #f2f5fa;
+}
+
+.login-card {
+  border: 1px solid var(--figma-line);
+  border-radius: 10px;
+  box-shadow: 0 10px 32px #253c5b0d;
+}
+
+.login-card .brand-mark {
+  background: var(--figma-blue);
+  color: #fff;
+}
+
+.login-card .eyebrow {
+  color: var(--figma-blue);
+}
+
+.login-card h1 {
+  color: var(--figma-ink);
+}
+
+.login-card input:focus {
+  border-color: var(--figma-blue);
+  box-shadow: 0 0 0 3px #3676e81c;
+}
+
+@media (max-width: 760px) {
+  .parking-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .cell-grid {
+    grid-template-columns: repeat(3, minmax(70px, 1fr));
+  }
+}
+
+@media (max-width: 420px) {
+  .cell-grid {
+    grid-template-columns: repeat(2, minmax(70px, 1fr));
+  }
+}
