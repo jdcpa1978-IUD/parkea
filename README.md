@@ -16,6 +16,16 @@ parkea_app/
 └── docker-compose.yml        # PostgreSQL 16 para desarrollo local
 ```
 
+## Arquitectura
+
+```mermaid
+flowchart LR
+    Cliente[Usuario del sistema] --> Frontend[Angular<br/>Interfaz web]
+    Frontend -->|API REST| Backend[FastAPI<br/>Python]
+    Backend -->|SQLAlchemy| Database[(PostgreSQL<br/>parqueadero_parkea)]
+    Database --- Tables[usuarios · vehiculos · celdas<br/>registros_acceso · pagos_mensualidad · novedades]
+```
+
 ## Requisitos
 
 - Git.
@@ -43,7 +53,9 @@ docker compose up -d postgres
 docker compose ps
 ```
 
-Espera a que el servicio `postgres` aparezca como `healthy`. En la primera ejecución Docker crea la base `parkea`, aplica `database\schema.sql` y genera las 150 celdas de ejemplo. El usuario y la contraseña configurados en `docker-compose.yml` son exclusivamente para desarrollo local, no para producción. Docker conserva los datos en un volumen local; cada clon usa su propia base.
+Espera a que el servicio `postgres` aparezca como `healthy`. En la primera ejecución Docker crea la base `parqueadero_parkea`, aplica `database\schema.sql` y genera las 150 celdas de ejemplo. El usuario y la contraseña configurados en `docker-compose.yml` son exclusivamente para desarrollo local, no para producción. Docker conserva los datos en un volumen local; cada clon usa su propia base.
+
+Si ya habías iniciado PostgreSQL con una versión anterior del proyecto, cambiar `POSTGRES_DB` no renombra la base dentro del volumen existente. Haz una copia de seguridad antes de crear o migrar datos a `parqueadero_parkea`; no elimines el volumen para forzar la inicialización si necesitas conservar información.
 
 ### 2. Configurar e iniciar la API
 
@@ -88,7 +100,7 @@ Para apagar PostgreSQL, ejecuta `docker compose stop postgres` desde la carpeta 
 
 ### Usar otra instancia PostgreSQL
 
-Si no quieres usar Docker, crea una base PostgreSQL vacía, ejecuta `database\schema.sql` una sola vez y configura `DATABASE_URL` en `backend\.env` con la dirección de esa base. No ejecutes el esquema inicial sobre una base que ya tenga las tablas de PARKEA. Si vas a conectar una base existente como `Datasistempark`, primero realiza una copia de seguridad y aplica una sola vez `database\migrations\001_align_existing_schema.sql` desde **Query Tool** en pgAdmin. La migración interpreta las fechas previas como hora local de Bogotá. No compartas ni subas el `.env` ni credenciales de una base real.
+Si no quieres usar Docker, crea una base PostgreSQL vacía llamada `parqueadero_parkea`, ejecuta `database\schema.sql` una sola vez y configura `DATABASE_URL` en `backend\.env` con la dirección de esa base. No ejecutes el esquema inicial sobre una base que ya tenga las tablas de PARKEA. Si vas a conectar una base existente como `Datasistempark`, primero realiza una copia de seguridad y aplica una sola vez `database\migrations\001_align_existing_schema.sql` desde **Query Tool** en pgAdmin; esa base existente conserva su nombre. La migración interpreta las fechas previas como hora local de Bogotá. No compartas ni subas el `.env` ni credenciales de una base real.
 
 ## Roles y operaciones
 

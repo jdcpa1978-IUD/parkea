@@ -3,7 +3,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    database_url: str = "postgresql+psycopg://parkea:parkea@localhost:5432/parkea"
+    database_url: str = "postgresql+psycopg://parkea:parkea@localhost:5432/parqueadero_parkea"
     jwt_secret_key: str = ""
     jwt_expire_minutes: int = 480
     cors_origins: str = "http://localhost:4200"

@@ -2,7 +2,7 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: parkea
+      POSTGRES_DB: parqueadero_parkea
       POSTGRES_USER: parkea
       POSTGRES_PASSWORD: parkea
     ports:
@@ -11,7 +11,7 @@ services:
       - parkea_postgres:/var/lib/postgresql/data
       - ./database/schema.sql:/docker-entrypoint-initdb.d/001-schema.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U parkea -d parkea"]
+      test: ["CMD-SHELL", "pg_isready -U parkea -d parqueadero_parkea"]
       interval: 5s
       timeout: 5s
       retries: 10

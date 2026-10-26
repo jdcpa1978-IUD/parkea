@@ -1,3 +1,5 @@
+-- Ejecutar este esquema dentro de la base de datos parqueadero_parkea.
+
 CREATE TYPE rol_usuario AS ENUM ('ADMINISTRADOR', 'OPERADOR', 'CLIENTE');
 CREATE TYPE estado_usuario AS ENUM ('ACTIVO', 'INACTIVO');
 CREATE TYPE tipo_vehiculo_enum AS ENUM ('AUTOMOVIL', 'MOTOCICLETA');
