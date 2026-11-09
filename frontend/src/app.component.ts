@@ -4,7 +4,7 @@ import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { interval, Subscription } from 'rxjs';
 import {
-  AccessRecord, ApiService, Cell, Dashboard, Incident, Payment, User, Vehicle,
+  AccessRecord, ApiService, Cell, Dashboard, Incident, Payment, User, UserUpdate, Vehicle,
 } from './api.service';
 
 type Screen = 'dashboard' | 'access' | 'cells' | 'users' | 'vehicles' | 'payments' | 'incidents';
@@ -30,6 +30,7 @@ export class AppComponent implements OnInit, OnDestroy {
   selectedCellId = 0;
   accesses: AccessRecord[] = [];
   users: User[] = [];
+  editingUser: User | null = null;
   clients: User[] = [];
   vehicles: Vehicle[] = [];
   payments: Payment[] = [];
@@ -39,6 +40,9 @@ export class AppComponent implements OnInit, OnDestroy {
   accessForm = { placa: '' };
   userForm = {
     documento: '', nombre: '', apellido: '', telefono: '', email: '', password: '', rol: 'CLIENTE',
+  };
+  userEditForm: Omit<UserUpdate, 'password'> & { password: string } = {
+    nombre: '', apellido: '', telefono: null, email: null, password: '', rol: 'CLIENTE',
   };
   vehicleForm = {
     placa: '', tipo_vehiculo: 'AUTOMOVIL', id_usuario: -1, marca: '', modelo: '', color: '',
@@ -123,14 +127,28 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   registerExit(): void {
-    this.api.exit(this.accessForm.placa.trim().toUpperCase()).subscribe({
+    const plate = this.accessForm.placa.trim().toUpperCase();
+    if (!plate) {
+      this.showError('Ingresa la placa del vehículo para registrar la salida.');
+      return;
+    }
+    if (!confirm(`¿Confirmas la salida del vehículo ${plate}?`)) return;
+    this.api.exit(plate).subscribe({
       next: (result) => {
-        this.showSuccess(`Salida registrada. Permanencia: ${result['minutos_permanencia']} minutos.`);
+        this.showSuccess(
+          `Salida registrada: ${result.placa}, celda ${result.codigo_celda}. ` +
+          `Permanencia: ${this.formatDuration(result.minutos_permanencia)}.`,
+        );
         this.accessForm.placa = '';
         this.loadLiveData();
       },
       error: (error: unknown) => this.showError(error),
     });
+  }
+
+  registerExitFor(access: AccessRecord): void {
+    this.accessForm.placa = access.placa;
+    this.registerExit();
   }
 
   createUser(): void {
@@ -144,6 +162,52 @@ export class AppComponent implements OnInit, OnDestroy {
           documento: '', nombre: '', apellido: '', telefono: '', email: '', password: '', rol: 'CLIENTE',
         };
         this.showSuccess('Usuario creado correctamente.');
+        this.loadUsers();
+      },
+      error: (error: unknown) => this.showError(error),
+    });
+  }
+
+  startEditingUser(user: User): void {
+    this.editingUser = user;
+    this.userEditForm = {
+      nombre: user.nombre,
+      apellido: user.apellido,
+      telefono: user.telefono,
+      email: user.email,
+      password: '',
+      rol: user.rol,
+    };
+    this.message = '';
+  }
+
+  cancelUserEdit(): void {
+    this.editingUser = null;
+    this.message = '';
+  }
+
+  updateUser(): void {
+    const user = this.editingUser;
+    if (!user) return;
+
+    const update: UserUpdate = {
+      nombre: this.userEditForm.nombre.trim(),
+      apellido: this.userEditForm.apellido.trim(),
+      telefono: this.userEditForm.telefono?.trim() || null,
+      email: this.userEditForm.email?.trim() || null,
+    };
+    if (this.userEditForm.password) update.password = this.userEditForm.password;
+    const isCurrentUser = user.id_usuario === this.user?.id_usuario;
+    if (!isCurrentUser) update.rol = this.userEditForm.rol;
+
+    this.api.updateUser(user.id_usuario, update).subscribe({
+      next: (updated) => {
+        if (isCurrentUser) {
+          this.user = updated;
+          localStorage.setItem('parkea_user', JSON.stringify(updated));
+        }
+        this.editingUser = null;
+        this.showSuccess('Usuario actualizado correctamente.');
         this.loadUsers();
       },
       error: (error: unknown) => this.showError(error),
@@ -278,6 +342,7 @@ export class AppComponent implements OnInit, OnDestroy {
       meses: Number(this.paymentForm.meses),
     }).subscribe({
       next: (payment) => {
+        this.paymentForm = { id_usuario: 0, monto: 0, meses: 1, metodo_pago: 'EFECTIVO' };
         this.showSuccess(`Pago registrado. Vigencia hasta ${payment.fecha_fin_vencimiento}.`);
         this.loadPayments();
         this.loadLiveData();
@@ -302,6 +367,12 @@ export class AppComponent implements OnInit, OnDestroy {
 
   formatDate(value: string | null): string {
     return value ? new Date(value).toLocaleString('es-CO') : '—';
+  }
+
+  private formatDuration(minutes: number): string {
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    return hours ? `${hours} h ${remainingMinutes} min` : `${remainingMinutes} min`;
   }
 
   private readSessionUser(): User | null {

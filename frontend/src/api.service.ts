@@ -12,6 +12,15 @@ export interface User {
   estado: 'ACTIVO' | 'INACTIVO';
 }
 
+export interface UserUpdate {
+  nombre: string;
+  apellido: string;
+  telefono: string | null;
+  email: string | null;
+  password?: string;
+  rol?: User['rol'];
+}
+
 export interface Cell {
   id_celda: number;
   codigo_celda: string;
@@ -37,6 +46,16 @@ export interface AccessRecord {
   codigo_celda: string;
   fecha_hora_ingreso: string;
   fecha_hora_salida: string | null;
+  estado_registro: string;
+}
+
+export interface ExitResult {
+  id_registro: number;
+  placa: string;
+  codigo_celda: string;
+  fecha_hora_salida: string;
+  minutos_permanencia: number;
+  horas_permanencia: number;
   estado_registro: string;
 }
 
@@ -80,6 +99,9 @@ export class ApiService {
   users() { return this.http.get<User[]>(`${this.base}/usuarios`); }
   clients() { return this.http.get<User[]>(`${this.base}/clientes`); }
   createUser(value: object) { return this.http.post<User>(`${this.base}/usuarios`, value); }
+  updateUser(id: number, value: UserUpdate) {
+    return this.http.patch<User>(`${this.base}/usuarios/${id}`, value);
+  }
   deactivateUser(id: number) { return this.http.delete<void>(`${this.base}/usuarios/${id}`); }
   vehicles() { return this.http.get<Vehicle[]>(`${this.base}/vehiculos`); }
   createVehicle(value: object) { return this.http.post<Vehicle>(`${this.base}/vehiculos`, value); }
@@ -95,7 +117,9 @@ export class ApiService {
   }
   activeAccesses() { return this.http.get<AccessRecord[]>(`${this.base}/accesos/activos`); }
   entry(placa: string) { return this.http.post<AccessRecord>(`${this.base}/accesos/entrada`, { placa }); }
-  exit(placa: string) { return this.http.post<Record<string, unknown>>(`${this.base}/accesos/salida`, { placa }); }
+  exit(placa: string) {
+    return this.http.post<ExitResult>(`${this.base}/accesos/salida`, { placa });
+  }
   payments() { return this.http.get<Payment[]>(`${this.base}/pagos`); }
   createPayment(value: object) { return this.http.post<Payment>(`${this.base}/pagos`, value); }
   incidents() { return this.http.get<Incident[]>(`${this.base}/novedades`); }

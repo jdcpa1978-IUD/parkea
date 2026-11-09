@@ -69,6 +69,17 @@ class User(Base):
         Enum(UserStatus, name="estado_usuario"), nullable=False, default=UserStatus.ACTIVO
     )
     vehiculos: Mapped[list["Vehicle"]] = relationship(back_populates="usuario")
+    registros_ingreso: Mapped[list["AccessRecord"]] = relationship(
+        foreign_keys="AccessRecord.id_operador_ingreso",
+        back_populates="operador_ingreso",
+    )
+    registros_salida: Mapped[list["AccessRecord"]] = relationship(
+        foreign_keys="AccessRecord.id_operador_salida",
+        back_populates="operador_salida",
+    )
+    novedades_registradas: Mapped[list["Incident"]] = relationship(
+        back_populates="operador"
+    )
 
 
 class Vehicle(Base):
@@ -156,6 +167,14 @@ class AccessRecord(Base):
     )
     vehiculo: Mapped[Vehicle] = relationship()
     celda: Mapped[Cell] = relationship(back_populates="registros")
+    operador_ingreso: Mapped[User] = relationship(
+        foreign_keys=[id_operador_ingreso],
+        back_populates="registros_ingreso",
+    )
+    operador_salida: Mapped[User | None] = relationship(
+        foreign_keys=[id_operador_salida],
+        back_populates="registros_salida",
+    )
     novedades: Mapped[list["Incident"]] = relationship(back_populates="registro")
 
 
@@ -203,4 +222,4 @@ class Incident(Base):
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
     registro: Mapped[AccessRecord] = relationship(back_populates="novedades")
-    operador: Mapped[User] = relationship()
+    operador: Mapped[User] = relationship(back_populates="novedades_registradas")

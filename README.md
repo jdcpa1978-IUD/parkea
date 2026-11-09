@@ -26,6 +26,181 @@ flowchart LR
     Database --- Tables[usuarios · vehiculos · celdas<br/>registros_acceso · pagos_mensualidad · novedades]
 ```
 
+## Trazabilidad de requisitos, historias y prototipo
+
+Las historias originales HU-01 a HU-05 conservan su numeración. HU-06 completa la trazabilidad pendiente de gestión de usuarios.
+
+| Requisito | Historia | Cobertura |
+|---|---|---|
+| RF-01 Registro de ingreso de vehículos | HU-01 | Registrar ingreso, validar mensualidad y asignar una celda compatible |
+| RF-02 Registro de salida de vehículos | HU-02 | Finalizar el acceso, calcular permanencia y liberar la celda |
+| RF-03 Gestión de usuarios | HU-06 | Registrar, consultar y actualizar usuarios y roles |
+| RF-04 Gestión de celdas | HU-03 | Consultar disponibilidad y administrar estados |
+| RF-05 Gestión de pagos de mensualidad | HU-05 | Registrar pagos y extender vigencia |
+| RF-06 Registro de novedades | HU-04 | Asociar observaciones a una estancia y a su operador |
+
+### HU-06 — RF-03: Gestión de usuarios
+
+**Historia:** Como administrador, quiero registrar, consultar y actualizar usuarios, diferenciando los roles Administrador, Operador y Cliente, para mantener las cuentas y sus permisos al día.
+
+- **Precondiciones:** el administrador inició sesión; el documento identifica de forma única a cada usuario.
+- **Flujo principal:** registra una cuenta con documento, nombre, apellido, datos de contacto, contraseña y rol; consulta el directorio y puede actualizar los datos permitidos. El sistema conserva el estado de la cuenta y protege la contraseña.
+- **Criterios de aceptación:**
+  1. Al registrar datos válidos se crea una cuenta con el rol indicado y la contraseña almacenada de forma segura.
+  2. Al abrir el directorio se consultan los usuarios con sus roles y estados.
+  3. Al actualizar una cuenta, el directorio refleja los datos guardados; una contraseña vacía no reemplaza la existente.
+  4. Un documento duplicado, un usuario inexistente o una actualización no autorizada produce un error explícito y no guarda cambios.
+
+### HU-01 — RF-01: Registro de ingreso
+
+**Historia:** Como operador, quiero registrar la entrada de un vehículo ingresando su placa y asignando una celda, para controlar la ocupación y validar la mensualidad vigente.
+
+- **Aceptación:** dado un vehículo de un cliente activo con mensualidad vigente y una celda disponible compatible, cuando el operador confirma la entrada, entonces se registra el ingreso, el responsable y la hora, y la celda pasa a OCUPADA.
+- **Rechazos:** una mensualidad vencida o inexistente, un vehículo que ya está dentro o la falta de una celda compatible impide el ingreso y muestra el motivo sin crear otro registro ni alterar la ocupación.
+
+### HU-02 — RF-02: Registro de salida
+
+**Historia:** Como operador, quiero registrar la salida de un vehículo por su placa, para cerrar el acceso, calcular su permanencia y liberar la celda.
+
+- **Aceptación:** dado un ingreso activo, cuando el operador confirma la salida, entonces el sistema guarda la hora y el responsable, finaliza el acceso, calcula y muestra la permanencia, y actualiza la lista operativa.
+- **Rechazo:** si la placa no tiene ingreso activo, el sistema informa el error y no modifica ningún registro ni celda; una salida ya finalizada no puede repetirse.
+
+### HU-03 — RF-04: Control y mapa de celdas
+
+**Historia:** Como operador o administrador, quiero visualizar el estado de las celdas, para conocer la disponibilidad de espacios.
+
+- **Aceptación:** al abrir el mapa, cada celda muestra su tipo y estado con una leyenda consistente: verde para DISPONIBLE, ámbar para OCUPADA y rojo para MANTENIMIENTO.
+- **Regla de mantenimiento:** una celda ocupada puede marcarse para mantenimiento; al registrar la salida permanece en MANTENIMIENTO y no vuelve a ofrecerse hasta que un administrador la habilite.
+
+### HU-05 — RF-05: Gestión de pagos
+
+**Historia:** Como administrador, quiero registrar los pagos mensuales de los usuarios, para actualizar su vigencia de acceso.
+
+- **Aceptación:** dado un cliente, cuando se registra un pago válido con monto, duración y método, entonces el sistema muestra el resultado y las fechas de vigencia actualizadas en el historial.
+- **Rechazo:** un monto no positivo, una duración inválida o un cliente inexistente muestra el error y no agrega un pago.
+
+### HU-04 — RF-06: Registro de novedades
+
+**Historia:** Como operador, quiero registrar observaciones sobre el vehículo, para dejar constancia de incidentes durante su permanencia.
+
+- **Aceptación:** dado un ingreso activo, cuando el operador guarda una descripción, entonces la novedad queda asociada a la estancia, fecha, hora y operador, y aparece en el listado.
+- **Rechazo:** una estancia inexistente o una descripción vacía no genera una novedad y presenta el motivo.
+
+### Estados del prototipo
+
+Estos bocetos describen el contenido y los estados clave de la interfaz. La aplicación Angular implementa los formularios, listados y mensajes de operación. [Abrir el prototipo interactivo de PARKEA en Figma](https://www.figma.com/proto/ocVDfeF858x0mxtq1Ge9qF/Parkea?node-id=60-15873&p=f&t=Nrqp4vkOZW79J4y9-1&scaling=min-zoom&content-scaling=fixed&page-id=0%3A1).
+
+**Acceso y operación de entrada/salida**
+
+```text
+Iniciar sesión                         Control de acceso
+Documento [____________]               Buscar placa [ABC123] [Registrar entrada]
+Contraseña [____________]              Mensualidad: VIGENTE hasta 30/11/2026
+[Iniciar sesión]                        [Registrar salida]
+Error: documento o contraseña          Vehículos dentro: ABC123 · A-01 · 08:32
+incorrectos.                            Confirmar salida de ABC123? [Cancelar] [Confirmar]
+
+Salida registrada: ABC123 · Celda A-01 · 1 h 33 min
+Error de entrada: mensualidad vencida; no se registró el ingreso.
+Error de entrada: el vehículo ya se encuentra dentro.
+Error de entrada: no hay celdas compatibles disponibles.
+Error de salida: no se encontró un ingreso activo para esa placa.
+```
+
+**Mapa de celdas**
+
+```text
+Leyenda: [Verde DISPONIBLE] [Ámbar OCUPADA] [Rojo MANTENIMIENTO]
+Automóviles: [A-01 OCUPADA] [A-02 DISPONIBLE] [A-03 MANTENIMIENTO]
+Motocicletas: [M-01 DISPONIBLE] [M-02 OCUPADA]
+Detalle A-01: vehículo ABC123 · ingreso 08:32
+```
+
+**Pagos y novedades**
+
+```text
+Registrar mensualidad                 Historial de pagos
+Cliente [Seleccionar]                 Cliente · Monto · Vigencia · Método
+Monto [________] Meses [__]            123456 · $120.000 · 01/11–30/11 · EFECTIVO
+Método [Efectivo v] [Registrar pago]   Resultado: pago registrado; vigencia hasta 30/11.
+                                       Error: monto o duración inválidos.
+
+Registrar novedad                    Listado de novedades
+Estancia [ABC123 · A-01 v]             ABC123 · A-01 · Daño reportado · 08:40
+Descripción [___________________]      Resultado: novedad registrada.
+[Guardar novedad]                      Error: selecciona una estancia y escribe la descripción.
+```
+
+**Gestión de usuarios (RF-03)**
+
+```text
+Directorio de usuarios                Editar usuario
+Documento · Nombre · Rol · Estado      Nombre [________] Apellido [________]
+123456 · Ana Pérez · CLIENTE · ACTIVO  Correo [________] Teléfono [________]
+[Crear usuario] [Editar]               Rol [CLIENTE v] Contraseña [opcional]
+                                       [Guardar cambios] [Cancelar]
+Error: documento duplicado; sin cambios.
+```
+
+### Diagrama de clases
+
+```mermaid
+classDiagram
+    class User {
+        +int id_usuario
+        +string documento
+        +string nombre
+        +string apellido
+        +Role rol
+    }
+    class Vehicle {
+        +int id_vehiculo
+        +string placa
+        +VehicleType tipo_vehiculo
+        +int id_usuario
+    }
+    class Cell {
+        +int id_celda
+        +string codigo_celda
+        +CellStatus estado
+    }
+    class AccessRecord {
+        +int id_registro
+        +int id_vehiculo
+        +int id_celda
+        +int id_operador_ingreso
+        +int? id_operador_salida
+        +datetime fecha_hora_ingreso
+        +datetime? fecha_hora_salida
+        +AccessStatus estado_registro
+    }
+    class MonthlyPayment {
+        +int id_pago
+        +int id_usuario
+        +decimal monto
+        +date fecha_inicio_vencimiento
+        +date fecha_fin_vencimiento
+    }
+    class Incident {
+        +int id_novedad
+        +int id_registro
+        +int id_operador
+        +string descripcion
+        +datetime fecha_hora
+    }
+
+    User "1" --> "0..*" Vehicle : propietario
+    Vehicle "1" --> "0..*" AccessRecord : registra accesos
+    Cell "1" --> "0..*" AccessRecord : asignada a
+    User "1" --> "0..*" AccessRecord : responsable de ingreso
+    User "0..*" --> "0..1" AccessRecord : responsable de salida
+    User "1" --> "0..*" MonthlyPayment : titular
+    AccessRecord "1" --> "0..*" Incident : tiene novedades
+    User "1" --> "0..*" Incident : operador que registra
+```
+
+Cada vehículo y cada celda pueden tener muchos registros históricos de acceso, pero como máximo uno activo a la vez. Todo registro tiene exactamente un responsable de ingreso. Mientras está abierto, puede no tener responsable de salida (`0..1`) y `fecha_hora_salida` es nula; al finalizarlo, la aplicación guarda ambos datos. Cada novedad tiene exactamente un operador que la registra.
+
 ## Requisitos
 
 - Git.

@@ -28,6 +28,12 @@ def _exit_time_and_minutes(entered_at: datetime, now: datetime) -> tuple[datetim
     return exit_at, elapsed
 
 
+def _cell_status_after_exit(status: CellStatus) -> CellStatus:
+    if status == CellStatus.MANTENIMIENTO:
+        return CellStatus.MANTENIMIENTO
+    return CellStatus.DISPONIBLE
+
+
 def register_entry(db: Session, plate: str, operator_id: int) -> AccessRecord:
     vehicle = db.scalar(
         select(Vehicle).where(Vehicle.placa == plate).with_for_update()
@@ -107,5 +113,5 @@ def register_exit(db: Session, plate: str, operator_id: int) -> tuple[AccessReco
     record.fecha_hora_salida = exit_at
     record.id_operador_salida = operator_id
     record.estado_registro = AccessStatus.FINALIZADO
-    cell.estado = CellStatus.DISPONIBLE
+    cell.estado = _cell_status_after_exit(cell.estado)
     return record, elapsed
