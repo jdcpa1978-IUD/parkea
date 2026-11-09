@@ -89,39 +89,43 @@ export class ApiService {
   private readonly http = inject(HttpClient);
   private readonly base = 'http://localhost:8000/api';
 
+  private getFresh<T>(path: string) {
+    return this.http.get<T>(`${this.base}${path}`, { cache: 'no-store' });
+  }
+
   login(documento: string, password: string) {
     return this.http.post<{ access_token: string; user: User }>(`${this.base}/auth/login`, {
       documento,
       password,
     });
   }
-  dashboard() { return this.http.get<Dashboard>(`${this.base}/dashboard`); }
-  users() { return this.http.get<User[]>(`${this.base}/usuarios`); }
-  clients() { return this.http.get<User[]>(`${this.base}/clientes`); }
+  dashboard() { return this.getFresh<Dashboard>('/dashboard'); }
+  users() { return this.getFresh<User[]>('/usuarios'); }
+  clients() { return this.getFresh<User[]>('/clientes'); }
   createUser(value: object) { return this.http.post<User>(`${this.base}/usuarios`, value); }
   updateUser(id: number, value: UserUpdate) {
     return this.http.patch<User>(`${this.base}/usuarios/${id}`, value);
   }
   deactivateUser(id: number) { return this.http.delete<void>(`${this.base}/usuarios/${id}`); }
-  vehicles() { return this.http.get<Vehicle[]>(`${this.base}/vehiculos`); }
+  vehicles() { return this.getFresh<Vehicle[]>('/vehiculos'); }
   createVehicle(value: object) { return this.http.post<Vehicle>(`${this.base}/vehiculos`, value); }
   createVehicleWithNewClient(value: object) {
     return this.http.post<{ vehiculo: Vehicle; cliente: User; clave_temporal: string }>(
       `${this.base}/vehiculos/registro-completo`, value,
     );
   }
-  cells() { return this.http.get<Cell[]>(`${this.base}/celdas`); }
+  cells() { return this.getFresh<Cell[]>('/celdas'); }
   createCell(value: object) { return this.http.post<Cell>(`${this.base}/celdas`, value); }
   updateCell(id: number, estado: string) {
     return this.http.patch<Cell>(`${this.base}/celdas/${id}`, { estado });
   }
-  activeAccesses() { return this.http.get<AccessRecord[]>(`${this.base}/accesos/activos`); }
+  activeAccesses() { return this.getFresh<AccessRecord[]>('/accesos/activos'); }
   entry(placa: string) { return this.http.post<AccessRecord>(`${this.base}/accesos/entrada`, { placa }); }
   exit(placa: string) {
     return this.http.post<ExitResult>(`${this.base}/accesos/salida`, { placa });
   }
-  payments() { return this.http.get<Payment[]>(`${this.base}/pagos`); }
+  payments() { return this.getFresh<Payment[]>('/pagos'); }
   createPayment(value: object) { return this.http.post<Payment>(`${this.base}/pagos`, value); }
-  incidents() { return this.http.get<Incident[]>(`${this.base}/novedades`); }
+  incidents() { return this.getFresh<Incident[]>('/novedades'); }
   createIncident(value: object) { return this.http.post<Incident>(`${this.base}/novedades`, value); }
 }

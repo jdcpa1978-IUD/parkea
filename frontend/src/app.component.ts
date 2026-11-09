@@ -1,6 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
-import { Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { interval, Subscription } from 'rxjs';
 import {
@@ -17,7 +17,9 @@ type Screen = 'dashboard' | 'access' | 'cells' | 'users' | 'vehicles' | 'payment
 })
 export class AppComponent implements OnInit, OnDestroy {
   private readonly api = inject(ApiService);
+  private readonly changeDetector = inject(ChangeDetectorRef);
   private poll?: Subscription;
+  private liveDataRequest = 0;
 
   user: User | null = this.readSessionUser();
   screen: Screen = 'dashboard';
@@ -287,7 +289,12 @@ export class AppComponent implements OnInit, OnDestroy {
 
   setCellStatus(cell: Cell, estado: string): void {
     this.api.updateCell(cell.id_celda, estado).subscribe({
-      next: () => {
+      next: (updatedCell) => {
+        this.liveDataRequest += 1;
+        this.cells = this.cells.map((item) =>
+          item.id_celda === updatedCell.id_celda ? updatedCell : item,
+        );
+        this.changeDetector.markForCheck();
         this.showSuccess(`Estado de ${cell.codigo_celda} actualizado.`);
         this.loadLiveData();
       },
@@ -398,22 +405,37 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   private loadLiveData(): void {
+    const requestId = ++this.liveDataRequest;
     this.api.cells().subscribe({
       next: (items) => {
+        if (requestId !== this.liveDataRequest) return;
         this.cells = items;
         if (!items.some((cell) => cell.id_celda === this.selectedCellId)) {
           this.selectedCellId = items[0]?.id_celda ?? 0;
         }
+        this.changeDetector.markForCheck();
       },
-      error: (error: unknown) => this.showError(error),
+      error: (error: unknown) => {
+        if (requestId === this.liveDataRequest) this.showError(error);
+      },
     });
     this.api.activeAccesses().subscribe({
-      next: (items) => { this.accesses = items; },
-      error: (error: unknown) => this.showError(error),
+      next: (items) => {
+        if (requestId === this.liveDataRequest) this.accesses = items;
+        this.changeDetector.markForCheck();
+      },
+      error: (error: unknown) => {
+        if (requestId === this.liveDataRequest) this.showError(error);
+      },
     });
     this.api.dashboard().subscribe({
-      next: (data) => { this.dashboard = data; },
-      error: (error: unknown) => this.showError(error),
+      next: (data) => {
+        if (requestId === this.liveDataRequest) this.dashboard = data;
+        this.changeDetector.markForCheck();
+      },
+      error: (error: unknown) => {
+        if (requestId === this.liveDataRequest) this.showError(error);
+      },
     });
   }
 
