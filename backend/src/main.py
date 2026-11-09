@@ -453,10 +453,15 @@ def create_incident(payload: IncidentCreate, db: Db, operator: Staff):
     record = db.get(AccessRecord, payload.id_registro)
     if record is None:
         raise HTTPException(status_code=404, detail="No se encontró el registro de acceso")
+    if record.estado_registro != AccessStatus.INGRESO_ACTIVO:
+        raise HTTPException(
+            status_code=409,
+            detail="Solo se pueden registrar novedades en ingresos activos",
+        )
     incident = Incident(
         id_registro=payload.id_registro,
         id_operador=operator.id_usuario,
-        descripcion=payload.descripcion.strip(),
+        descripcion=payload.descripcion,
     )
     db.add(incident)
     db.commit()

@@ -182,6 +182,14 @@ class IncidentCreate(BaseModel):
     id_registro: int
     descripcion: str = Field(min_length=1, max_length=5000)
 
+    @field_validator("descripcion")
+    @classmethod
+    def validate_description(cls, value: str) -> str:
+        description = value.strip()
+        if not description:
+            raise ValueError("La descripción no puede estar vacía")
+        return description
+
 
 class IncidentOut(BaseModel):
     id_novedad: int
