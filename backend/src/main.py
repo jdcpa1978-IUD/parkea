@@ -144,7 +144,9 @@ def dashboard(db: Db, current_user: Authenticated):
     return {
         "celdas_totales": db.scalar(select(func.count()).select_from(Cell)) or 0,
         "celdas_ocupadas": db.scalar(
-            select(func.count()).select_from(Cell).where(Cell.estado == CellStatus.OCUPADA)
+            select(func.count())
+            .select_from(AccessRecord)
+            .where(AccessRecord.estado_registro == AccessStatus.INGRESO_ACTIVO)
         )
         or 0,
         "ingresos_activos": db.scalar(

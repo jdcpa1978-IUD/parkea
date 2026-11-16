@@ -1,0 +1,50 @@
+@startuml Secuencia_Iteracion1_Accesos
+autonumber
+actor "Operador" as Operador
+boundary "Angular\nControl de acceso" as UI
+control "FastAPI\n/api/accesos" as API
+control "Autenticación y roles\n(auth.py)" as Auth
+control "Servicio de acceso\n(access.py)" as Servicio
+database "PostgreSQL" as DB
+
+alt Registrar ingreso
+  Operador -> UI : Ingresa placa y confirma
+  UI -> API : POST /api/accesos/entrada
+  API -> Auth : Validar token y rol\nADMINISTRADOR u OPERADOR
+  Auth --> API : Usuario autorizado
+  API -> Servicio : register_entry(placa, operador)
+  Servicio -> DB : Iniciar transacción y bloquear vehículo/celda
+  Servicio -> DB : Validar cliente activo, mensualidad vigente,\nvehículo sin acceso activo y celda compatible disponible
+  alt Datos válidos y hay celda compatible
+    Servicio -> DB : Crear registro de acceso\nasignar celda como OCUPADA
+    Servicio --> API : Registro creado
+    API -> DB : COMMIT
+    API --> UI : 201 + placa, celda y hora
+    UI --> Operador : Mostrar ingreso registrado
+  else Validación fallida o sin celda disponible
+    Servicio --> API : Error de validación/conflicto
+    API -> DB : ROLLBACK
+    API --> UI : Error explícito; sin cambios
+    UI --> Operador : Mostrar motivo del rechazo
+  end
+else Registrar salida
+  Operador -> UI : Ingresa placa y confirma salida
+  UI -> API : POST /api/accesos/salida
+  API -> Auth : Validar token y rol\nADMINISTRADOR u OPERADOR
+  Auth --> API : Usuario autorizado
+  API -> Servicio : register_exit(placa, operador)
+  Servicio -> DB : Buscar ingreso activo y bloquear registro
+  alt Existe ingreso activo
+    Servicio -> DB : Guardar hora y operador de salida\nfinalizar registro
+    Servicio -> DB : Liberar celda; conservar MANTENIMIENTO si aplica
+    Servicio --> API : Registro finalizado + permanencia
+    API -> DB : COMMIT
+    API --> UI : 200 + hora, celda y duración
+    UI --> Operador : Mostrar salida registrada
+  else No existe ingreso activo
+    Servicio --> API : Error de negocio
+    API --> UI : 404/conflicto; sin cambios
+    UI --> Operador : Mostrar motivo del rechazo
+  end
+end
+@enduml

@@ -1,0 +1,58 @@
+@startuml Secuencia_Iteracion2_Usuarios
+autonumber
+actor "Administrador" as Admin
+boundary "Angular\nPantalla Usuarios" as UI
+control "ApiService" as Client
+control "FastAPI\n/api/usuarios" as API
+control "Autenticación y roles\n(auth.py)" as Auth
+database "PostgreSQL" as DB
+
+Admin -> UI : Abre Usuarios
+UI -> Client : Solicitar directorio
+Client -> API : GET /api/usuarios + Bearer token
+API -> Auth : Validar token y rol ADMINISTRADOR
+Auth --> API : Usuario autorizado
+API -> DB : Consultar usuarios ordenados
+DB --> API : Usuarios sin password_hash
+API --> Client : 200 + directorio
+Client --> UI : Mostrar usuarios y estados
+
+alt Crear usuario
+  Admin -> UI : Completa formulario y guarda
+  UI -> Client : createUser(datos)
+  Client -> API : POST /api/usuarios
+  API -> Auth : Validar rol ADMINISTRADOR
+  API -> DB : Validar unicidad y guardar hash BCrypt
+  alt Datos únicos y válidos
+    DB --> API : Usuario creado
+    API --> Client : 201 + usuario (sin contraseña)
+    Client --> UI : Actualizar directorio
+  else Documento/correo duplicado o datos inválidos
+    DB --> API : Conflicto/validación
+    API --> Client : Error explícito; rollback
+    Client --> UI : Mostrar error sin crear cuenta
+  end
+else Actualizar usuario
+  Admin -> UI : Edita datos y guarda
+  UI -> Client : updateUser(id, cambios)
+  Client -> API : PATCH /api/usuarios/{id}
+  API -> Auth : Validar rol y regla de autoprotección
+  API -> DB : Actualizar campos permitidos
+  note right of DB
+  Si password está vacío o ausente,
+  conservar el hash existente.
+  end note
+  DB --> API : Usuario actualizado
+  API --> Client : 200 + usuario
+  Client --> UI : Actualizar directorio
+else Desactivar usuario
+  Admin -> UI : Confirma desactivación
+  UI -> Client : deactivateUser(id)
+  Client -> API : DELETE /api/usuarios/{id}
+  API -> Auth : Validar rol y evitar auto-desactivación
+  API -> DB : Cambiar estado a INACTIVO
+  DB --> API : Actualización confirmada
+  API --> Client : 204
+  Client --> UI : Mostrar usuario INACTIVO
+end
+@enduml

@@ -75,10 +75,25 @@ export class AppComponent implements OnInit, OnDestroy {
     return this.accesses.find((record) => record.id_celda === this.selectedCellId);
   }
   get occupiedCells(): number {
-    return this.cells.filter((cell) => cell.estado === 'OCUPADA').length;
+    return this.cells.filter((cell) => this.isCellOccupied(cell)).length;
   }
   get availableCells(): number {
     return this.cells.filter((cell) => cell.estado === 'DISPONIBLE').length;
+  }
+
+  isCellOccupied(cell: Cell): boolean {
+    return cell.estado === 'OCUPADA' || this.hasActiveAccess(cell);
+  }
+
+  hasActiveAccess(cell: Cell): boolean {
+    return this.accesses.some((record) => record.id_celda === cell.id_celda);
+  }
+
+  cellStatusLabel(cell: Cell): string {
+    if (cell.estado === 'MANTENIMIENTO' && this.hasActiveAccess(cell)) {
+      return 'OCUPADA · MANTENIMIENTO AL SALIR';
+    }
+    return cell.estado;
   }
 
   login(): void {
@@ -118,7 +133,12 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   registerEntry(): void {
-    this.api.entry(this.accessForm.placa.trim().toUpperCase()).subscribe({
+    const plate = this.normalizePlate(this.accessForm.placa);
+    if (!this.isValidPlate(plate)) {
+      this.showError('La placa debe tener exactamente 6 caracteres alfanuméricos.');
+      return;
+    }
+    this.api.entry(plate).subscribe({
       next: (record) => {
         this.showSuccess(`Ingreso registrado: ${record.placa} → celda ${record.codigo_celda}.`);
         this.accessForm.placa = '';
@@ -129,9 +149,9 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   registerExit(): void {
-    const plate = this.accessForm.placa.trim().toUpperCase();
-    if (!plate) {
-      this.showError('Ingresa la placa del vehículo para registrar la salida.');
+    const plate = this.normalizePlate(this.accessForm.placa);
+    if (!this.isValidPlate(plate)) {
+      this.showError('La placa debe tener exactamente 6 caracteres alfanuméricos.');
       return;
     }
     if (!confirm(`¿Confirmas la salida del vehículo ${plate}?`)) return;
@@ -228,8 +248,13 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   createVehicle(): void {
+    const plate = this.normalizePlate(this.vehicleForm.placa);
+    if (!this.isValidPlate(plate)) {
+      this.showError('La placa debe tener exactamente 6 caracteres alfanuméricos.');
+      return;
+    }
     const vehicle = {
-      placa: this.vehicleForm.placa.trim().toUpperCase(),
+      placa: plate,
       tipo_vehiculo: this.vehicleForm.tipo_vehiculo,
       marca: this.vehicleForm.marca || null,
       modelo: this.vehicleForm.modelo || null,
@@ -287,7 +312,14 @@ export class AppComponent implements OnInit, OnDestroy {
     });
   }
 
-  setCellStatus(cell: Cell, estado: string): void {
+  setCellStatus(cell: Cell, estado: Cell['estado']): void {
+    if (
+      cell.estado === 'OCUPADA'
+      && estado === 'MANTENIMIENTO'
+      && !confirm(`¿Programar mantenimiento para ${cell.codigo_celda} después de la salida?`)
+    ) {
+      return;
+    }
     this.api.updateCell(cell.id_celda, estado).subscribe({
       next: (updatedCell) => {
         this.liveDataRequest += 1;
@@ -295,7 +327,11 @@ export class AppComponent implements OnInit, OnDestroy {
           item.id_celda === updatedCell.id_celda ? updatedCell : item,
         );
         this.changeDetector.markForCheck();
-        this.showSuccess(`Estado de ${cell.codigo_celda} actualizado.`);
+        this.showSuccess(
+          cell.estado === 'OCUPADA'
+            ? `La celda ${cell.codigo_celda} quedará en mantenimiento al registrar la salida.`
+            : `Estado de ${cell.codigo_celda} actualizado.`,
+        );
         this.loadLiveData();
       },
       error: (error: unknown) => this.showError(error),
@@ -325,6 +361,14 @@ export class AppComponent implements OnInit, OnDestroy {
     } else {
       this.vehicleForm.placa = plate;
     }
+  }
+
+  private normalizePlate(value: string): string {
+    return value.trim().toUpperCase();
+  }
+
+  private isValidPlate(value: string): boolean {
+    return /^[A-Z0-9]{6}$/.test(value);
   }
 
   pastePlate(event: ClipboardEvent, field: 'access' | 'vehicle'): void {

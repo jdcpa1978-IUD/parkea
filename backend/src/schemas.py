@@ -59,7 +59,7 @@ class UserOut(BaseModel):
 
 
 class VehicleCreate(BaseModel):
-    placa: str = Field(min_length=1, max_length=6)
+    placa: str = Field(min_length=6, max_length=6)
     tipo_vehiculo: VehicleType
     id_usuario: int
     marca: str | None = Field(default=None, max_length=30)
@@ -70,8 +70,8 @@ class VehicleCreate(BaseModel):
     @classmethod
     def normalize_plate(cls, value: str) -> str:
         plate = value.strip().upper()
-        if not re.fullmatch(r"[A-Z0-9]{1,6}", plate):
-            raise ValueError("La placa solo puede contener letras y números, máximo 6 caracteres")
+        if not re.fullmatch(r"[A-Z0-9]{6}", plate):
+            raise ValueError("La placa debe tener exactamente 6 caracteres alfanuméricos")
         return plate
 
 
@@ -94,7 +94,7 @@ class NewVehicleClient(BaseModel):
 
 
 class VehicleWithNewClientCreate(BaseModel):
-    placa: str = Field(min_length=1, max_length=6)
+    placa: str = Field(min_length=6, max_length=6)
     tipo_vehiculo: VehicleType
     marca: str | None = Field(default=None, max_length=30)
     modelo: str | None = Field(default=None, max_length=30)
@@ -105,8 +105,8 @@ class VehicleWithNewClientCreate(BaseModel):
     @classmethod
     def normalize_plate(cls, value: str) -> str:
         plate = value.strip().upper()
-        if not re.fullmatch(r"[A-Z0-9]{1,6}", plate):
-            raise ValueError("La placa solo puede contener letras y números, máximo 6 caracteres")
+        if not re.fullmatch(r"[A-Z0-9]{6}", plate):
+            raise ValueError("La placa debe tener exactamente 6 caracteres alfanuméricos")
         return plate
 
 
@@ -145,14 +145,14 @@ class CellOut(BaseModel):
 
 
 class EntryInput(BaseModel):
-    placa: str = Field(min_length=1, max_length=6)
+    placa: str = Field(min_length=6, max_length=6)
 
     @field_validator("placa")
     @classmethod
     def normalize_plate(cls, value: str) -> str:
         plate = value.strip().upper()
-        if not re.fullmatch(r"[A-Z0-9]{1,6}", plate):
-            raise ValueError("La placa solo puede contener letras y números, máximo 6 caracteres")
+        if not re.fullmatch(r"[A-Z0-9]{6}", plate):
+            raise ValueError("La placa debe tener exactamente 6 caracteres alfanuméricos")
         return plate
 
 

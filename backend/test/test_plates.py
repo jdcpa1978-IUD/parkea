@@ -19,6 +19,10 @@ class PlateValidationTests(unittest.TestCase):
         with self.assertRaises(ValidationError):
             VehicleCreate(placa="ABC1234", tipo_vehiculo="AUTOMOVIL", id_usuario=1)
 
+    def test_vehicle_plate_rejects_fewer_than_six_characters(self):
+        with self.assertRaises(ValidationError):
+            VehicleCreate(placa="ABC12", tipo_vehiculo="AUTOMOVIL", id_usuario=1)
+
     def test_vehicle_plate_rejects_non_alphanumeric_characters(self):
         for plate in ("ABC-12", "ABC 12", "ÁBC123"):
             with self.subTest(plate=plate), self.assertRaises(ValidationError):
@@ -26,8 +30,9 @@ class PlateValidationTests(unittest.TestCase):
 
     def test_access_plate_uses_the_same_validation(self):
         self.assertEqual(EntryInput(placa="abc123").placa, "ABC123")
-        with self.assertRaises(ValidationError):
-            EntryInput(placa="ABC-123")
+        for plate in ("ABC12", "ABC-123"):
+            with self.subTest(plate=plate), self.assertRaises(ValidationError):
+                EntryInput(placa=plate)
 
     def test_combined_vehicle_and_new_client_registration(self):
         payload = VehicleWithNewClientCreate(
@@ -45,6 +50,17 @@ class PlateValidationTests(unittest.TestCase):
     def test_combined_registration_requires_client_data(self):
         with self.assertRaises(ValidationError):
             VehicleWithNewClientCreate(placa="ABC123", tipo_vehiculo="AUTOMOVIL")
+
+    def test_combined_registration_rejects_short_plate(self):
+        with self.assertRaises(ValidationError):
+            VehicleWithNewClientCreate(
+                placa="ABC12",
+                tipo_vehiculo="AUTOMOVIL",
+                cliente={
+                    "documento": "123456",
+                    "nombre_completo": "Ana María Pérez",
+                },
+            )
 
     def test_new_client_requires_full_name(self):
         with self.assertRaises(ValidationError):

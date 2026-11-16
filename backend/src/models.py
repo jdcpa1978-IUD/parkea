@@ -86,7 +86,7 @@ class Vehicle(Base):
     __tablename__ = "vehiculos"
     __table_args__ = (
         CheckConstraint(
-            "placa ~ '^[A-Z0-9]{1,6}$'",
+            "placa ~ '^[A-Z0-9]{6}$'",
             name="ck_vehiculo_placa_alfanumerica",
         ),
     )

@@ -1,0 +1,56 @@
+@startuml Componentes_Iteraciones1y2
+left to right direction
+skinparam componentStyle rectangle
+
+actor "Administrador" as Admin
+actor "Operador" as Operador
+actor "Cliente" as Cliente
+
+package "Cliente web" {
+  [Navegador] as Browser
+  [Aplicación Angular\napp.component] as App
+  [ApiService\nHttpClient] as ApiClient
+  [Pantalla de accesos] as AccessUI
+  [Pantalla de usuarios] as UserUI
+  [Mapa de celdas] as CellUI
+}
+
+package "Servidor PARKEA" {
+  [FastAPI\nAPI REST (main.py)] as API
+  [Autenticación JWT\ny control de roles (auth.py)] as Auth
+  [Servicio de acceso\n(services/access.py)] as AccessService
+  [Modelos y sesión SQLAlchemy\n(models.py / database.py)] as ORM
+}
+
+database "PostgreSQL" as DB
+
+Admin --> Browser
+Operador --> Browser
+Cliente --> Browser
+Browser --> App
+App --> AccessUI
+App --> UserUI
+App --> CellUI
+AccessUI --> ApiClient
+UserUI --> ApiClient
+CellUI --> ApiClient
+ApiClient --> API : HTTP/JSON\n/api/*
+API --> Auth : validar JWT y rol
+API --> AccessService : entrada/salida
+API --> ORM : usuarios, celdas,\naccesos y pagos
+AccessService --> ORM : transacciones y consultas
+ORM --> DB : SQL
+
+note bottom of API
+Iteración 1: /api/accesos/entrada
+y /api/accesos/salida.
+Iteración 2: /api/usuarios
+y /api/celdas.
+end note
+
+note right of DB
+Tablas relevantes:
+usuarios, vehiculos, celdas,
+registros_acceso y pagos_mensualidad.
+end note
+@enduml

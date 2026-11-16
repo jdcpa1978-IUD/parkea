@@ -1,0 +1,52 @@
+@startuml Secuencia_Iteracion2_Celdas
+autonumber
+actor "Administrador" as Admin
+actor "Operador" as Operador
+boundary "Angular\nMapa de celdas" as UI
+control "ApiService" as Client
+control "FastAPI\n/api/celdas" as API
+control "Autenticación y roles\n(auth.py)" as Auth
+database "PostgreSQL" as DB
+
+Operador -> UI : Abre mapa
+UI -> Client : Solicitar celdas
+Client -> API : GET /api/celdas + Bearer token
+API -> Auth : Validar sesión
+Auth --> API : Usuario autenticado
+API -> DB : Consultar celdas ordenadas por código
+DB --> API : Código, tipo y estado
+API --> Client : 200 + celdas
+Client --> UI : Mostrar mapa y leyenda
+
+alt Registrar celda (solo administrador)
+  Admin -> UI : Ingresa código y tipo
+  UI -> Client : createCell(datos)
+  Client -> API : POST /api/celdas
+  API -> Auth : Validar rol ADMINISTRADOR
+  API -> DB : Insertar celda
+  alt Código nuevo y tipo válido
+    DB --> API : Celda creada
+    API --> Client : 201 + celda
+    Client --> UI : Actualizar mapa
+  else Código duplicado o inválido
+    DB --> API : Conflicto/validación
+    API --> Client : Error explícito; rollback
+    Client --> UI : Mostrar error
+  end
+else Cambiar estado (solo administrador)
+  Admin -> UI : Selecciona mantenimiento o habilitar
+  UI -> Client : updateCell(id, estado)
+  Client -> API : PATCH /api/celdas/{id}
+  API -> Auth : Validar rol ADMINISTRADOR
+  API -> DB : Bloquear celda y validar estado activo
+  alt Solicita liberar celda con ingreso activo
+    API --> Client : Conflicto; no modificar
+    Client --> UI : Mostrar error
+  else Cambio permitido
+    API -> DB : Guardar MANTENIMIENTO o DISPONIBLE
+    DB --> API : Celda actualizada
+    API --> Client : 200 + celda
+    Client --> UI : Actualizar estado del mapa
+  end
+end
+@enduml

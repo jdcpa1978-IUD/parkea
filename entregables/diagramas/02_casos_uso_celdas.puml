@@ -1,0 +1,45 @@
+@startuml CasosUso_GestionCeldas
+left to right direction
+skinparam packageStyle rectangle
+
+actor "Usuario autenticado" as Usuario
+actor "Administrador" as Admin
+actor "Operador" as Operador
+actor "Cliente" as Cliente
+Admin --|> Usuario
+Operador --|> Usuario
+Cliente --|> Usuario
+
+rectangle "Sistema PARKEA - Gestión de celdas" {
+  usecase "Consultar mapa\nde celdas" as Mapa
+  usecase "Ver detalle de celda" as Detalle
+  usecase "Registrar celda" as Crear
+  usecase "Cambiar a\nmantenimiento" as Mantener
+  usecase "Habilitar celda" as Habilitar
+  usecase "Validar código único\ny tipo de vehículo" as Validar
+  usecase "Asignar celda compatible\ndurante un ingreso" as Asignar
+  usecase "Actualizar estado al\nregistrar una salida" as Liberar
+}
+
+Usuario --> Mapa
+Usuario --> Detalle
+Admin --> Crear
+Admin --> Mantener
+Admin --> Habilitar
+Crear .> Validar : <<include>>
+Asignar .> Mapa : <<include>>
+Liberar .> Mapa : <<include>>
+
+note right of Asignar
+La asignación es parte del caso
+de uso de ingreso de Iteración 1.
+Solo el servicio de acceso marca
+una celda como OCUPADA.
+end note
+
+note bottom of Mantener
+Una celda ocupada puede quedar
+marcada para mantenimiento y
+permanece así después de la salida.
+end note
+@enduml

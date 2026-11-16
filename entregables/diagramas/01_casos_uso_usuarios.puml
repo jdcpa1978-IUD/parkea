@@ -1,0 +1,42 @@
+@startuml CasosUso_GestionUsuarios
+left to right direction
+skinparam packageStyle rectangle
+
+actor "Administrador" as Admin
+actor "Operador" as Operador
+actor "Cliente" as Cliente
+
+rectangle "Sistema PARKEA - Gestión de usuarios" {
+  usecase "Iniciar sesión" as Login
+  usecase "Consultar directorio\nde usuarios" as Listar
+  usecase "Registrar usuario" as Crear
+  usecase "Actualizar usuario" as Editar
+  usecase "Desactivar usuario" as Desactivar
+  usecase "Validar datos\ny rol" as Validar
+  usecase "Comprobar unicidad\nde documento y correo" as Unicidad
+  usecase "Proteger contraseña\ncon BCrypt" as Hash
+  usecase "Rechazar modificación\nde su propio rol/estado" as Autoproteccion
+}
+
+Admin --> Login
+Operador --> Login
+Cliente --> Login
+
+Admin --> Listar
+Admin --> Crear
+Admin --> Editar
+Admin --> Desactivar
+
+Crear .> Validar : <<include>>
+Crear .> Unicidad : <<include>>
+Crear .> Hash : <<include>>
+Editar .> Validar : <<include>>
+Editar .> Unicidad : <<include>>
+Editar .> Hash : <<extend>>\n[se cambia contraseña]
+Desactivar .> Autoproteccion : <<include>>
+
+note right of Desactivar
+La cuenta se marca INACTIVO;
+no se elimina físicamente.
+end note
+@enduml
