@@ -20,8 +20,9 @@ class PlateValidationTests(unittest.TestCase):
             VehicleCreate(placa="ABC1234", tipo_vehiculo="AUTOMOVIL", id_usuario=1)
 
     def test_vehicle_plate_rejects_fewer_than_six_characters(self):
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(ValidationError) as context:
             VehicleCreate(placa="ABC12", tipo_vehiculo="AUTOMOVIL", id_usuario=1)
+        self.assertIn("La placa ingresada no es válida", str(context.exception))
 
     def test_vehicle_plate_rejects_non_alphanumeric_characters(self):
         for plate in ("ABC-12", "ABC 12", "ÁBC123"):

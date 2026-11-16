@@ -66,12 +66,14 @@ class VehicleCreate(BaseModel):
     modelo: str | None = Field(default=None, max_length=30)
     color: str | None = Field(default=None, max_length=20)
 
-    @field_validator("placa")
+    @field_validator("placa", mode="before")
     @classmethod
     def normalize_plate(cls, value: str) -> str:
+        if not isinstance(value, str):
+            raise ValueError("La placa ingresada no es válida. Debe tener exactamente 6 caracteres alfanuméricos")
         plate = value.strip().upper()
         if not re.fullmatch(r"[A-Z0-9]{6}", plate):
-            raise ValueError("La placa debe tener exactamente 6 caracteres alfanuméricos")
+            raise ValueError("La placa ingresada no es válida. Debe tener exactamente 6 caracteres alfanuméricos")
         return plate
 
 
@@ -101,12 +103,14 @@ class VehicleWithNewClientCreate(BaseModel):
     color: str | None = Field(default=None, max_length=20)
     cliente: NewVehicleClient
 
-    @field_validator("placa")
+    @field_validator("placa", mode="before")
     @classmethod
     def normalize_plate(cls, value: str) -> str:
+        if not isinstance(value, str):
+            raise ValueError("La placa ingresada no es válida. Debe tener exactamente 6 caracteres alfanuméricos")
         plate = value.strip().upper()
         if not re.fullmatch(r"[A-Z0-9]{6}", plate):
-            raise ValueError("La placa debe tener exactamente 6 caracteres alfanuméricos")
+            raise ValueError("La placa ingresada no es válida. Debe tener exactamente 6 caracteres alfanuméricos")
         return plate
 
 
@@ -147,12 +151,14 @@ class CellOut(BaseModel):
 class EntryInput(BaseModel):
     placa: str = Field(min_length=6, max_length=6)
 
-    @field_validator("placa")
+    @field_validator("placa", mode="before")
     @classmethod
     def normalize_plate(cls, value: str) -> str:
+        if not isinstance(value, str):
+            raise ValueError("La placa ingresada no es válida. Debe tener exactamente 6 caracteres alfanuméricos")
         plate = value.strip().upper()
         if not re.fullmatch(r"[A-Z0-9]{6}", plate):
-            raise ValueError("La placa debe tener exactamente 6 caracteres alfanuméricos")
+            raise ValueError("La placa ingresada no es válida. Debe tener exactamente 6 caracteres alfanuméricos")
         return plate
 
 

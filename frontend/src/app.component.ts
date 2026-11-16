@@ -135,7 +135,7 @@ export class AppComponent implements OnInit, OnDestroy {
   registerEntry(): void {
     const plate = this.normalizePlate(this.accessForm.placa);
     if (!this.isValidPlate(plate)) {
-      this.showError('La placa debe tener exactamente 6 caracteres alfanuméricos.');
+      this.showError('La placa ingresada no es válida. Debe tener exactamente 6 caracteres alfanuméricos.');
       return;
     }
     this.api.entry(plate).subscribe({
@@ -151,7 +151,7 @@ export class AppComponent implements OnInit, OnDestroy {
   registerExit(): void {
     const plate = this.normalizePlate(this.accessForm.placa);
     if (!this.isValidPlate(plate)) {
-      this.showError('La placa debe tener exactamente 6 caracteres alfanuméricos.');
+      this.showError('La placa ingresada no es válida. Debe tener exactamente 6 caracteres alfanuméricos.');
       return;
     }
     if (!confirm(`¿Confirmas la salida del vehículo ${plate}?`)) return;
@@ -250,7 +250,7 @@ export class AppComponent implements OnInit, OnDestroy {
   createVehicle(): void {
     const plate = this.normalizePlate(this.vehicleForm.placa);
     if (!this.isValidPlate(plate)) {
-      this.showError('La placa debe tener exactamente 6 caracteres alfanuméricos.');
+      this.showError('La placa ingresada no es válida. Debe tener exactamente 6 caracteres alfanuméricos.');
       return;
     }
     const vehicle = {
@@ -529,9 +529,11 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   private showError(error: unknown): void {
-    this.message = error instanceof HttpErrorResponse
-      ? (typeof error.error?.detail === 'string' ? error.error.detail : 'No se pudo conectar con PARKEA. Verifica el servidor.')
-      : 'Ocurrió un error inesperado.';
+    this.message = typeof error === 'string'
+      ? error
+      : error instanceof HttpErrorResponse
+        ? (typeof error.error?.detail === 'string' ? error.error.detail : 'No se pudo conectar con PARKEA. Verifica el servidor.')
+        : 'Ocurrió un error inesperado.';
     this.messageIsError = true;
   }
 }
