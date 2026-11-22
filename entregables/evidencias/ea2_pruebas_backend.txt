@@ -1,0 +1,72 @@
+PARKEA EA2 - Backend test evidence
+Date: 2026-11-22
+
+=== Focused: users and cells (13 tests expected) ===
+$ C:\Users\jdcpa\OneDrive\Documents\Parkea_app\backend\.venv\Scripts\python.exe -m unittest test.test_users_cells test.test_access_cells -v
+test_active_cell_cannot_be_released_manually (test.test_users_cells.CellAdministrationTests.test_active_cell_cannot_be_released_manually) ... ok
+test_create_cell_normalizes_code (test.test_users_cells.CellAdministrationTests.test_create_cell_normalizes_code) ... ok
+test_create_cell_rolls_back_and_returns_conflict_on_duplicate (test.test_users_cells.CellAdministrationTests.test_create_cell_rolls_back_and_returns_conflict_on_duplicate) ... ok
+test_dashboard_counts_active_accesses_as_occupied_cells (test.test_users_cells.CellAdministrationTests.test_dashboard_counts_active_accesses_as_occupied_cells) ... ok
+test_occupied_cell_can_be_marked_for_maintenance (test.test_users_cells.CellAdministrationTests.test_occupied_cell_can_be_marked_for_maintenance) ... ok
+test_admin_cannot_change_own_role (test.test_users_cells.UserAdministrationTests.test_admin_cannot_change_own_role) ... ok
+test_create_user_hashes_password_and_trims_names (test.test_users_cells.UserAdministrationTests.test_create_user_hashes_password_and_trims_names) ... ok
+test_create_user_rolls_back_and_returns_conflict_on_duplicate (test.test_users_cells.UserAdministrationTests.test_create_user_rolls_back_and_returns_conflict_on_duplicate) ... ok
+test_deactivate_user_is_logical_and_cannot_deactivate_self (test.test_users_cells.UserAdministrationTests.test_deactivate_user_is_logical_and_cannot_deactivate_self) ... ok
+test_update_without_password_preserves_hash (test.test_users_cells.UserAdministrationTests.test_update_without_password_preserves_hash) ... ok
+test_cell_marked_for_maintenance_stays_unavailable_after_exit (test.test_access_cells.CellAvailabilityAfterExitTests.test_cell_marked_for_maintenance_stays_unavailable_after_exit) ... ok
+test_maintenance_cell_remains_unavailable_after_exit (test.test_access_cells.CellAvailabilityAfterExitTests.test_maintenance_cell_remains_unavailable_after_exit) ... ok
+test_occupied_cell_becomes_available_after_exit (test.test_access_cells.CellAvailabilityAfterExitTests.test_occupied_cell_becomes_available_after_exit) ... ok
+
+----------------------------------------------------------------------
+Ran 13 tests in 0.032s
+
+OK
+
+=== Full backend suite (41 tests expected) ===
+$ C:\Users\jdcpa\OneDrive\Documents\Parkea_app\backend\.venv\Scripts\python.exe -m unittest discover -s test -v
+test_cell_marked_for_maintenance_stays_unavailable_after_exit (test_access_cells.CellAvailabilityAfterExitTests.test_cell_marked_for_maintenance_stays_unavailable_after_exit) ... ok
+test_maintenance_cell_remains_unavailable_after_exit (test_access_cells.CellAvailabilityAfterExitTests.test_maintenance_cell_remains_unavailable_after_exit) ... ok
+test_occupied_cell_becomes_available_after_exit (test_access_cells.CellAvailabilityAfterExitTests.test_occupied_cell_becomes_available_after_exit) ... ok
+test_naive_database_timestamp_uses_database_timezone (test_access_times.ExitTimeTests.test_naive_database_timestamp_uses_database_timezone) ... ok
+test_timezone_aware_timestamps_remain_aware (test_access_times.ExitTimeTests.test_timezone_aware_timestamps_remain_aware) ... ok
+test_handles_end_of_month (test_dates.AddMonthsTests.test_handles_end_of_month) ... ok
+test_handles_leap_year (test_dates.AddMonthsTests.test_handles_leap_year) ... ok
+test_handles_year_boundary (test_dates.AddMonthsTests.test_handles_year_boundary) ... ok
+test_description_is_trimmed (test_incidents.IncidentValidationTests.test_description_is_trimmed) ... ok
+test_incident_can_be_created_for_active_access (test_incidents.IncidentValidationTests.test_incident_can_be_created_for_active_access) ... ok
+test_incident_for_finalized_access_is_rejected (test_incidents.IncidentValidationTests.test_incident_for_finalized_access_is_rejected) ... ok
+test_incident_for_missing_access_is_rejected (test_incidents.IncidentValidationTests.test_incident_for_missing_access_is_rejected) ... ok
+test_whitespace_only_description_is_rejected (test_incidents.IncidentValidationTests.test_whitespace_only_description_is_rejected) ... ok
+test_client_payment_query_is_restricted_to_authenticated_user (test_payments.PaymentHistoryTests.test_client_payment_query_is_restricted_to_authenticated_user) ... ok
+test_staff_history_is_not_filtered_to_a_single_client (test_payments.PaymentHistoryTests.test_staff_history_is_not_filtered_to_a_single_client) ... ok
+test_registration_chains_new_period_after_existing_vigency (test_payments.PaymentRegistrationTests.test_registration_chains_new_period_after_existing_vigency) ... ok
+test_registration_rejects_missing_or_inactive_client_without_commit (test_payments.PaymentRegistrationTests.test_registration_rejects_missing_or_inactive_client_without_commit) ... ok
+test_registration_starts_today_when_previous_period_expired (test_payments.PaymentRegistrationTests.test_registration_starts_today_when_previous_period_expired) ... ok
+test_registration_without_previous_payment_starts_today (test_payments.PaymentRegistrationTests.test_registration_without_previous_payment_starts_today) ... ok
+test_add_months_handles_year_boundary_and_short_month (test_payments.PaymentValidationTests.test_add_months_handles_year_boundary_and_short_month) ... ok
+test_payment_rejects_non_positive_amount_and_invalid_month_range (test_payments.PaymentValidationTests.test_payment_rejects_non_positive_amount_and_invalid_month_range) ... ok
+test_access_plate_uses_the_same_validation (test_plates.PlateValidationTests.test_access_plate_uses_the_same_validation) ... ok
+test_combined_registration_rejects_short_plate (test_plates.PlateValidationTests.test_combined_registration_rejects_short_plate) ... ok
+test_combined_registration_requires_client_data (test_plates.PlateValidationTests.test_combined_registration_requires_client_data) ... ok
+test_combined_vehicle_and_new_client_registration (test_plates.PlateValidationTests.test_combined_vehicle_and_new_client_registration) ... ok
+test_new_client_rejects_names_that_do_not_fit_database_columns (test_plates.PlateValidationTests.test_new_client_rejects_names_that_do_not_fit_database_columns) ... ok
+test_new_client_requires_full_name (test_plates.PlateValidationTests.test_new_client_requires_full_name) ... ok
+test_vehicle_plate_is_normalized_and_accepts_six_alphanumeric_characters (test_plates.PlateValidationTests.test_vehicle_plate_is_normalized_and_accepts_six_alphanumeric_characters) ... ok
+test_vehicle_plate_rejects_fewer_than_six_characters (test_plates.PlateValidationTests.test_vehicle_plate_rejects_fewer_than_six_characters) ... ok
+test_vehicle_plate_rejects_more_than_six_characters (test_plates.PlateValidationTests.test_vehicle_plate_rejects_more_than_six_characters) ... ok
+test_vehicle_plate_rejects_non_alphanumeric_characters (test_plates.PlateValidationTests.test_vehicle_plate_rejects_non_alphanumeric_characters) ... ok
+test_active_cell_cannot_be_released_manually (test_users_cells.CellAdministrationTests.test_active_cell_cannot_be_released_manually) ... ok
+test_create_cell_normalizes_code (test_users_cells.CellAdministrationTests.test_create_cell_normalizes_code) ... ok
+test_create_cell_rolls_back_and_returns_conflict_on_duplicate (test_users_cells.CellAdministrationTests.test_create_cell_rolls_back_and_returns_conflict_on_duplicate) ... ok
+test_dashboard_counts_active_accesses_as_occupied_cells (test_users_cells.CellAdministrationTests.test_dashboard_counts_active_accesses_as_occupied_cells) ... ok
+test_occupied_cell_can_be_marked_for_maintenance (test_users_cells.CellAdministrationTests.test_occupied_cell_can_be_marked_for_maintenance) ... ok
+test_admin_cannot_change_own_role (test_users_cells.UserAdministrationTests.test_admin_cannot_change_own_role) ... ok
+test_create_user_hashes_password_and_trims_names (test_users_cells.UserAdministrationTests.test_create_user_hashes_password_and_trims_names) ... ok
+test_create_user_rolls_back_and_returns_conflict_on_duplicate (test_users_cells.UserAdministrationTests.test_create_user_rolls_back_and_returns_conflict_on_duplicate) ... ok
+test_deactivate_user_is_logical_and_cannot_deactivate_self (test_users_cells.UserAdministrationTests.test_deactivate_user_is_logical_and_cannot_deactivate_self) ... ok
+test_update_without_password_preserves_hash (test_users_cells.UserAdministrationTests.test_update_without_password_preserves_hash) ... ok
+
+----------------------------------------------------------------------
+Ran 41 tests in 0.032s
+
+OK

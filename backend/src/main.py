@@ -11,6 +11,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
 from src.auth import (
+    UNUSABLE_PASSWORD,
     create_access_token,
     get_current_user,
     hash_password,
@@ -189,7 +190,7 @@ def create_user(payload: UserCreate, db: Db, _: Admin):
         apellido=payload.apellido.strip(),
         telefono=payload.telefono,
         email=str(payload.email).lower() if payload.email else None,
-        password_hash=hash_password(payload.password),
+        password_hash=hash_password(payload.password) if payload.password is not None else UNUSABLE_PASSWORD,
         rol=payload.rol,
     )
     try:
@@ -206,13 +207,22 @@ def create_user(payload: UserCreate, db: Db, _: Admin):
 def update_user(user_id: int, payload: UserUpdate, db: Db, current_user: Admin):
     user = db.get(User, user_id)
     if user is None:
+        db.rollback()
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     changes = payload.model_dump(exclude_unset=True)
     if user.id_usuario == current_user.id_usuario and (
         changes.get("estado") == UserStatus.INACTIVO
         or changes.get("rol") not in (None, Role.ADMINISTRADOR)
     ):
+        db.rollback()
         raise HTTPException(status_code=409, detail="No puede desactivar ni cambiar su propio rol")
+    if (
+        changes.get("rol") in (Role.ADMINISTRADOR, Role.OPERADOR)
+        and user.password_hash == UNUSABLE_PASSWORD
+        and not changes.get("password")
+    ):
+        db.rollback()
+        raise HTTPException(status_code=422, detail="Asigne una contraseña para este rol")
     if "password" in changes:
         user.password_hash = hash_password(changes.pop("password"))
     if "email" in changes and changes["email"] is not None:
@@ -232,8 +242,10 @@ def update_user(user_id: int, payload: UserUpdate, db: Db, current_user: Admin):
 def deactivate_user(user_id: int, db: Db, current_user: Admin):
     user = db.get(User, user_id)
     if user is None:
+        db.rollback()
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     if user.id_usuario == current_user.id_usuario:
+        db.rollback()
         raise HTTPException(status_code=409, detail="No puede desactivar su propio usuario")
     user.estado = UserStatus.INACTIVO
     db.commit()
@@ -324,11 +336,16 @@ def create_cell(payload: CellCreate, db: Db, _: Admin):
 
 
 @app.patch("/api/celdas/{cell_id}", response_model=CellOut)
-def update_cell(cell_id: int, payload: CellStatusUpdate, db: Db, _: Admin):
+def update_cell(cell_id: int, payload: CellStatusUpdate, db: Db, current_user: Staff):
+    if current_user.rol == Role.OPERADOR and payload.estado != CellStatus.MANTENIMIENTO:
+        db.rollback()
+        raise HTTPException(status_code=403, detail="Solo un administrador puede habilitar celdas")
     cell = db.scalar(select(Cell).where(Cell.id_celda == cell_id).with_for_update())
     if cell is None:
+        db.rollback()
         raise HTTPException(status_code=404, detail="Celda no encontrada")
     if payload.estado == CellStatus.OCUPADA:
+        db.rollback()
         raise HTTPException(status_code=409, detail="Las celdas se ocupan únicamente al registrar un ingreso")
     if payload.estado == CellStatus.DISPONIBLE and db.scalar(
         select(AccessRecord.id_registro).where(
@@ -336,6 +353,7 @@ def update_cell(cell_id: int, payload: CellStatusUpdate, db: Db, _: Admin):
             AccessRecord.estado_registro == AccessStatus.INGRESO_ACTIVO,
         )
     ):
+        db.rollback()
         raise HTTPException(status_code=409, detail="No se puede liberar una celda con un ingreso activo")
     cell.estado = payload.estado
     db.commit()

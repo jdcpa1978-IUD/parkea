@@ -1,0 +1,37 @@
+@startuml CasosUso_GestionPagos
+left to right direction
+skinparam packageStyle rectangle
+
+actor "Administrador" as Admin
+actor "Operador" as Operador
+actor "Cliente" as Cliente
+
+rectangle "PARKEA - Gestión de pagos de mensualidad" {
+  usecase "Consultar historial\nde pagos" as UC_Historial
+  usecase "Consultar vigencia\nde mensualidad" as UC_Vigencia
+  usecase "Registrar pago\nde mensualidad" as UC_Registrar
+  usecase "Validar cliente activo\ny datos del pago" as UC_Validar
+  usecase "Calcular periodo\nde vigencia" as UC_Calcular
+  usecase "Consultar pagos\nde todos los clientes" as UC_Todos
+}
+
+Admin --> UC_Historial
+Admin --> UC_Vigencia
+Admin --> UC_Registrar
+Admin --> UC_Todos
+Operador --> UC_Historial
+Operador --> UC_Registrar
+Cliente --> UC_Historial
+Cliente --> UC_Vigencia
+
+UC_Registrar .> UC_Validar : <<include>>
+UC_Registrar .> UC_Calcular : <<include>>
+note right of UC_Historial
+El cliente solo consulta
+su propio historial.
+end note
+note bottom of UC_Registrar
+Monto > 0; duración entre 1 y 24 meses;
+método: efectivo, transferencia o tarjeta.
+end note
+@enduml

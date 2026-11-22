@@ -44,11 +44,11 @@ Las historias originales HU-01 a HU-05 conservan su numeración. HU-06 completa 
 **Historia:** Como administrador, quiero registrar, consultar y actualizar usuarios, diferenciando los roles Administrador, Operador y Cliente, para mantener las cuentas y sus permisos al día.
 
 - **Precondiciones:** el administrador inició sesión; el documento identifica de forma única a cada usuario.
-- **Flujo principal:** registra una cuenta con documento, nombre, apellido, datos de contacto, contraseña y rol; consulta el directorio y puede actualizar los datos permitidos. El sistema conserva el estado de la cuenta y protege la contraseña.
+- **Flujo principal:** registra una cuenta con documento, nombre, apellido, datos de contacto y rol; para administrador u operador también solicita contraseña. El cliente creado desde Usuarios no puede iniciar sesión hasta que un administrador le asigne una contraseña desde Editar. El administrador puede consultar, editar, desactivar y reactivar cuentas.
 - **Criterios de aceptación:**
-  1. Al registrar datos válidos se crea una cuenta con el rol indicado y la contraseña almacenada de forma segura.
+  1. Al registrar datos válidos se crea una cuenta con el rol indicado; las contraseñas asignadas se almacenan de forma segura.
   2. Al abrir el directorio se consultan los usuarios con sus roles y estados.
-  3. Al actualizar una cuenta, el directorio refleja los datos guardados; una contraseña vacía no reemplaza la existente.
+  3. Al actualizar o reactivar una cuenta, el directorio refleja los datos guardados; una contraseña vacía no reemplaza la existente. Reactivar un cliente sin contraseña no habilita su inicio de sesión.
   4. Un documento duplicado, un usuario inexistente o una actualización no autorizada produce un error explícito y no guarda cambios.
 
 ### HU-01 — RF-01: Registro de ingreso
@@ -67,10 +67,10 @@ Las historias originales HU-01 a HU-05 conservan su numeración. HU-06 completa 
 
 ### HU-03 — RF-04: Control y mapa de celdas
 
-**Historia:** Como operador o administrador, quiero visualizar el estado de las celdas, para conocer la disponibilidad de espacios.
+**Historia:** Como operador o administrador, quiero visualizar el estado de las celdas y enviarlas a mantenimiento, para gestionar la disponibilidad de espacios.
 
 - **Aceptación:** al abrir el mapa, cada celda muestra su tipo y estado con una leyenda consistente: verde para DISPONIBLE, ámbar para OCUPADA y rojo para MANTENIMIENTO.
-- **Regla de mantenimiento:** una celda ocupada puede marcarse para mantenimiento; al registrar la salida permanece en MANTENIMIENTO y no vuelve a ofrecerse hasta que un administrador la habilite.
+- **Regla de mantenimiento:** el operador o administrador puede enviar una celda disponible a mantenimiento o programarlo para una celda ocupada; al registrar la salida permanece en MANTENIMIENTO y no vuelve a ofrecerse hasta que un administrador la habilite.
 
 ### HU-05 — RF-05: Gestión de pagos
 
@@ -269,7 +269,7 @@ npm ci
 npm start
 ```
 
-Abre `http://localhost:4200` e inicia sesión con el administrador. Desde la aplicación puedes registrar operadores, clientes, vehículos, celdas, mensualidades e incidentes. En **Vehículos**, puedes asociar un cliente existente o registrar en una transacción un cliente con su vehículo. El alta conjunta solicita documento y nombre completo; genera una contraseña inicial aleatoria y se la muestra al administrador una sola vez para compartirla con el cliente.
+Abre `http://localhost:4200` e inicia sesión con el administrador. Desde la aplicación puedes registrar operadores, clientes, vehículos, celdas, mensualidades e incidentes. En **Usuarios**, los clientes se crean sin contraseña y no pueden iniciar sesión hasta que el administrador les asigne una desde **Editar**; el administrador también puede reactivar cuentas inactivas desde el directorio. En **Vehículos**, puedes asociar un cliente existente o registrar en una transacción un cliente con su vehículo. El alta conjunta solicita documento y nombre completo; genera una contraseña inicial aleatoria y se la muestra al administrador una sola vez para compartirla con el cliente.
 
 Para apagar PostgreSQL, ejecuta `docker compose stop postgres` desde la carpeta clonada. Para iniciar de nuevo, usa `docker compose start postgres`. Los datos se conservan en el volumen local.
 
@@ -280,7 +280,7 @@ Si no quieres usar Docker, crea una base PostgreSQL vacía llamada `parqueadero_
 ## Roles y operaciones
 
 - **Administrador:** administra usuarios, vehículos y celdas; consulta y opera todas las funciones.
-- **Operador:** registra entradas y salidas, consulta celdas, registra pagos y novedades.
+- **Operador:** registra entradas y salidas, consulta celdas y las envía a mantenimiento, registra pagos y novedades.
 - **Cliente:** consulta sus vehículos, sus pagos y sus accesos; el resto de clientes y las operaciones internas quedan restringidos.
 
 Para una entrada, la API valida cliente activo y mensualidad vigente, bloquea el vehículo y la plaza durante la transacción y registra el ingreso. La salida finaliza la estancia y libera la plaza en la misma transacción. Las mensualidades se encadenan desde el vencimiento vigente y ajustan el último día a la longitud real del mes. Índices únicos parciales impiden más de un ingreso activo por vehículo o celda.
@@ -295,7 +295,7 @@ Para una entrada, la API valida cliente activo y mensualidad vigente, bloquea el
 | GET / POST / PATCH / DELETE | `/api/usuarios` | Administrador |
 | GET | `/api/clientes` | Administrador u operador |
 | GET / POST | `/api/vehiculos` | Lectura según rol; alta administrador |
-| GET / POST / PATCH | `/api/celdas` | Lectura autenticada; cambios administrador |
+| GET / POST / PATCH | `/api/celdas` | Lectura autenticada; creación y habilitación administrador; mantenimiento administrador u operador |
 | POST | `/api/accesos/entrada` | Administrador u operador |
 | POST | `/api/accesos/salida` | Administrador u operador |
 | GET | `/api/accesos/activos` | Consulta autenticada, limitada al propio cliente |

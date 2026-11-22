@@ -11,10 +11,11 @@ rectangle "Sistema PARKEA - Gestión de usuarios" {
   usecase "Consultar directorio\nde usuarios" as Listar
   usecase "Registrar usuario" as Crear
   usecase "Actualizar usuario" as Editar
+  usecase "Cambiar contraseña" as CambiarClave
+  usecase "Proteger nueva contraseña\ncon BCrypt" as Hash
   usecase "Desactivar usuario" as Desactivar
   usecase "Validar datos\ny rol" as Validar
   usecase "Comprobar unicidad\nde documento y correo" as Unicidad
-  usecase "Proteger contraseña\ncon BCrypt" as Hash
   usecase "Rechazar modificación\nde su propio rol/estado" as Autoproteccion
 }
 
@@ -32,11 +33,16 @@ Crear .> Unicidad : <<include>>
 Crear .> Hash : <<include>>
 Editar .> Validar : <<include>>
 Editar .> Unicidad : <<include>>
-Editar .> Hash : <<extend>>\n[se cambia contraseña]
+CambiarClave .> Editar : <<extend>>\n[se proporciona una contraseña nueva]
+CambiarClave .> Hash : <<include>>
 Desactivar .> Autoproteccion : <<include>>
 
 note right of Desactivar
 La cuenta se marca INACTIVO;
 no se elimina físicamente.
+end note
+note bottom of CambiarClave
+Si el campo se omite o queda vacío,
+la contraseña actual se conserva.
 end note
 @enduml

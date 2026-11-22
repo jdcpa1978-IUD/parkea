@@ -2,7 +2,7 @@ from datetime import date, datetime
 from decimal import Decimal
 import re
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
 from src.models import CellStatus, PaymentMethod, Role, UserStatus, VehicleType
 
@@ -18,15 +18,21 @@ class UserCreate(BaseModel):
     apellido: str = Field(min_length=1, max_length=50)
     telefono: str | None = Field(default=None, max_length=15)
     email: EmailStr | None = None
-    password: str = Field(min_length=8, max_length=72)
+    password: str | None = Field(default=None, min_length=8, max_length=72)
     rol: Role
 
     @field_validator("password")
     @classmethod
-    def password_size(cls, value: str) -> str:
-        if len(value.encode()) > 72:
+    def password_size(cls, value: str | None) -> str | None:
+        if value is not None and len(value.encode()) > 72:
             raise ValueError("La contraseña no puede superar 72 bytes")
         return value
+
+    @model_validator(mode="after")
+    def require_staff_password(self):
+        if self.rol != Role.CLIENTE and self.password is None:
+            raise ValueError("La contraseña es obligatoria para administradores y operadores")
+        return self
 
 
 class UserUpdate(BaseModel):

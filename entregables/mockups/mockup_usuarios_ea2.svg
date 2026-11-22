@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <rect width="1200" height="800" fill="#f3f5f9"/>
+  <rect width="1200" height="68" fill="#172554"/>
+  <text x="32" y="44" fill="#fff" font-family="Arial,sans-serif" font-size="24" font-weight="700">PARKEA</text>
+  <text x="130" y="43" fill="#cbd5e1" font-family="Arial,sans-serif" font-size="15">Gestión de parqueadero</text>
+  <text x="1060" y="42" fill="#fff" font-family="Arial,sans-serif" font-size="14">Administrador ▾</text>
+  <rect y="68" width="220" height="732" fill="#fff"/>
+  <text x="28" y="128" fill="#64748b" font-family="Arial,sans-serif" font-size="12" font-weight="700">MENÚ PRINCIPAL</text>
+  <text x="28" y="178" fill="#475569" font-family="Arial,sans-serif" font-size="16">Resumen general</text>
+  <text x="28" y="222" fill="#475569" font-family="Arial,sans-serif" font-size="16">Entradas y salidas</text>
+  <rect x="12" y="240" width="196" height="42" rx="8" fill="#eff6ff"/>
+  <text x="28" y="268" fill="#1d4ed8" font-family="Arial,sans-serif" font-size="16" font-weight="700">Usuarios</text>
+  <text x="28" y="316" fill="#475569" font-family="Arial,sans-serif" font-size="16">Mapa de celdas</text>
+  <text x="28" y="360" fill="#475569" font-family="Arial,sans-serif" font-size="16">Vehículos</text>
+  <text x="252" y="124" fill="#64748b" font-family="Arial,sans-serif" font-size="13" font-weight="700">ADMINISTRACIÓN / CUENTAS</text>
+  <text x="252" y="162" fill="#0f172a" font-family="Arial,sans-serif" font-size="30" font-weight="700">Gestión de usuarios</text>
+  <text x="252" y="190" fill="#64748b" font-family="Arial,sans-serif" font-size="14">Administra cuentas, roles y estado de acceso.</text>
+  <rect x="252" y="218" width="914" height="222" rx="12" fill="#fff" stroke="#e2e8f0"/>
+  <text x="278" y="254" fill="#0f172a" font-family="Arial,sans-serif" font-size="19" font-weight="700">Directorio de usuarios</text>
+  <rect x="278" y="272" width="862" height="36" rx="4" fill="#f8fafc"/>
+  <text x="292" y="295" fill="#475569" font-family="Arial,sans-serif" font-size="11" font-weight="700">DOCUMENTO</text>
+  <text x="418" y="295" fill="#475569" font-family="Arial,sans-serif" font-size="11" font-weight="700">NOMBRE</text>
+  <text x="588" y="295" fill="#475569" font-family="Arial,sans-serif" font-size="11" font-weight="700">CORREO</text>
+  <text x="790" y="295" fill="#475569" font-family="Arial,sans-serif" font-size="11" font-weight="700">ROL</text>
+  <text x="900" y="295" fill="#475569" font-family="Arial,sans-serif" font-size="11" font-weight="700">ESTADO</text>
+  <text x="1015" y="295" fill="#475569" font-family="Arial,sans-serif" font-size="11" font-weight="700">ACCIÓN</text>
+  <path d="M278 310H1140M278 354H1140M278 398H1140" stroke="#e2e8f0"/>
+  <text x="292" y="338" fill="#334155" font-family="Arial,sans-serif" font-size="12">•••456</text>
+  <text x="418" y="338" fill="#334155" font-family="Arial,sans-serif" font-size="12">Cliente de prueba</text>
+  <text x="588" y="338" fill="#334155" font-family="Arial,sans-serif" font-size="12">c•••@ejemplo.test</text>
+  <text x="790" y="338" fill="#334155" font-family="Arial,sans-serif" font-size="12">CLIENTE</text>
+  <rect x="894" y="321" width="76" height="23" rx="11" fill="#dcfce7"/>
+  <text x="906" y="337" fill="#166534" font-family="Arial,sans-serif" font-size="11">ACTIVO</text>
+  <text x="1015" y="338" fill="#1d4ed8" font-family="Arial,sans-serif" font-size="12">Editar</text>
+  <text x="292" y="382" fill="#334155" font-family="Arial,sans-serif" font-size="12">•••982</text>
+  <text x="418" y="382" fill="#334155" font-family="Arial,sans-serif" font-size="12">Operador de prueba</text>
+  <text x="588" y="382" fill="#334155" font-family="Arial,sans-serif" font-size="12">—</text>
+  <text x="790" y="382" fill="#334155" font-family="Arial,sans-serif" font-size="12">OPERADOR</text>
+  <rect x="894" y="365" width="76" height="23" rx="11" fill="#f1f5f9"/>
+  <text x="906" y="381" fill="#475569" font-family="Arial,sans-serif" font-size="11">INACTIVO</text>
+  <text x="1015" y="382" fill="#1d4ed8" font-family="Arial,sans-serif" font-size="12">Editar</text>
+  <rect x="252" y="460" width="914" height="300" rx="12" fill="#fff" stroke="#e2e8f0"/>
+  <text x="278" y="498" fill="#0f172a" font-family="Arial,sans-serif" font-size="19" font-weight="700">Editar usuario · •••456</text>
+  <text x="278" y="528" fill="#334155" font-family="Arial,sans-serif" font-size="12" font-weight="700">NOMBRE</text>
+  <text x="713" y="528" fill="#334155" font-family="Arial,sans-serif" font-size="12" font-weight="700">APELLIDO</text>
+  <rect x="278" y="540" width="405" height="38" rx="5" fill="#fff" stroke="#cbd5e1"/>
+  <rect x="713" y="540" width="427" height="38" rx="5" fill="#fff" stroke="#cbd5e1"/>
+  <text x="292" y="565" fill="#334155" font-family="Arial,sans-serif" font-size="13">Cliente</text>
+  <text x="727" y="565" fill="#334155" font-family="Arial,sans-serif" font-size="13">De prueba</text>
+  <text x="278" y="604" fill="#334155" font-family="Arial,sans-serif" font-size="12" font-weight="700">ROL</text>
+  <text x="713" y="604" fill="#334155" font-family="Arial,sans-serif" font-size="12" font-weight="700">ESTADO</text>
+  <rect x="278" y="616" width="405" height="38" rx="5" fill="#fff" stroke="#cbd5e1"/>
+  <rect x="713" y="616" width="427" height="38" rx="5" fill="#fff" stroke="#cbd5e1"/>
+  <text x="292" y="641" fill="#334155" font-family="Arial,sans-serif" font-size="13">CLIENTE ▾</text>
+  <text x="727" y="641" fill="#334155" font-family="Arial,sans-serif" font-size="13">ACTIVO ▾</text>
+  <text x="278" y="680" fill="#334155" font-family="Arial,sans-serif" font-size="12" font-weight="700">CONTRASEÑA NUEVA (OPCIONAL)</text>
+  <rect x="278" y="691" width="405" height="38" rx="5" fill="#fff" stroke="#cbd5e1"/>
+  <text x="292" y="716" fill="#94a3b8" font-family="Arial,sans-serif" font-size="12">Vacía = conservar contraseña actual</text>
+  <rect x="713" y="691" width="150" height="38" rx="6" fill="#2563eb"/>
+  <text x="738" y="716" fill="#fff" font-family="Arial,sans-serif" font-size="13" font-weight="700">Guardar cambios</text>
+  <text x="880" y="716" fill="#64748b" font-family="Arial,sans-serif" font-size="12">Desactivar requiere confirmación.</text>
+</svg>

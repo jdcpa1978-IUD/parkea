@@ -37,7 +37,7 @@ CellUI --> ApiClient
 ApiClient --> API : HTTP/JSON\n/api/*
 API --> Auth : validar JWT y rol
 API --> AccessService : entrada/salida
-API --> ORM : usuarios, celdas,\naccesos y pagos
+API --> ORM : usuarios, celdas,\naccesos
 AccessService --> ORM : transacciones y consultas
 ORM --> DB : SQL
 
@@ -46,11 +46,5 @@ Iteración 1: /api/accesos/entrada
 y /api/accesos/salida.
 Iteración 2: /api/usuarios
 y /api/celdas.
-end note
-
-note right of DB
-Tablas relevantes:
-usuarios, vehiculos, celdas,
-registros_acceso y pagos_mensualidad.
 end note
 @enduml

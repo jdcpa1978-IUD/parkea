@@ -1,50 +1,82 @@
 @startuml Secuencia_Iteracion1_Accesos
 autonumber
-actor "Operador" as Operador
-boundary "Angular\nControl de acceso" as UI
-control "FastAPI\n/api/accesos" as API
+actor "Administrador / Operador" as Staff
+boundary "Angular\nInicio de sesión / Control de acceso" as UI
+control "ApiService" as Client
+control "FastAPI\n/auth y /accesos" as API
 control "Autenticación y roles\n(auth.py)" as Auth
 control "Servicio de acceso\n(access.py)" as Servicio
 database "PostgreSQL" as DB
 
+group Autenticación
+  Staff -> UI : Ingresa documento y contraseña
+  UI -> Client : login(documento, contraseña)
+  Client -> API : POST /api/auth/login
+  API -> DB : Consultar usuario activo por documento
+  DB --> API : Usuario y hash BCrypt (o inexistente)
+  API -> Auth : Verificar contraseña y estado
+  alt Credenciales correctas y cuenta ACTIVA
+    Auth --> API : Token JWT + usuario
+    API --> Client : 200 + token
+    Client --> UI : Abrir aplicación
+  else Credenciales incorrectas o cuenta INACTIVA
+    Auth --> API : Rechazo de autenticación
+    API --> Client : 401; no emitir token
+    Client --> UI : Mostrar error; permanecer en login
+  end
+end
+
 alt Registrar ingreso
-  Operador -> UI : Ingresa placa y confirma
-  UI -> API : POST /api/accesos/entrada
-  API -> Auth : Validar token y rol\nADMINISTRADOR u OPERADOR
-  Auth --> API : Usuario autorizado
-  API -> Servicio : register_entry(placa, operador)
-  Servicio -> DB : Iniciar transacción y bloquear vehículo/celda
-  Servicio -> DB : Validar cliente activo, mensualidad vigente,\nvehículo sin acceso activo y celda compatible disponible
-  alt Datos válidos y hay celda compatible
-    Servicio -> DB : Crear registro de acceso\nasignar celda como OCUPADA
-    Servicio --> API : Registro creado
-    API -> DB : COMMIT
-    API --> UI : 201 + placa, celda y hora
-    UI --> Operador : Mostrar ingreso registrado
-  else Validación fallida o sin celda disponible
-    Servicio --> API : Error de validación/conflicto
-    API -> DB : ROLLBACK
-    API --> UI : Error explícito; sin cambios
-    UI --> Operador : Mostrar motivo del rechazo
+  Staff -> UI : Ingresa placa y confirma
+  UI -> Client : registerEntry(placa)
+  Client -> API : POST /api/accesos/entrada + Bearer token
+  API -> Auth : Validar token y rol operativo
+  alt Token inválido/vencido o rol CLIENTE
+    Auth --> API : 401 o 403
+    API --> Client : Denegar; no iniciar escritura
+    Client --> UI : Mostrar acceso denegado
+  else ADMINISTRADOR u OPERADOR
+    Auth --> API : Usuario autorizado
+    API -> Servicio : register_entry(placa, operador)
+    Servicio -> DB : BEGIN; bloquear vehículo y celda compatible
+    Servicio -> DB : Validar cliente activo, mensualidad vigente,\nvehículo sin estancia activa y disponibilidad
+    alt Datos válidos y hay celda compatible
+      Servicio -> DB : Crear acceso y marcar celda OCUPADA
+      API -> DB : COMMIT
+      API --> Client : 201 + placa, celda y hora
+      Client --> UI : Mostrar ingreso y actualizar lista
+    else Validación fallida o sin celda disponible
+      Servicio --> API : Error de negocio
+      API -> DB : ROLLBACK; no registrar ni ocupar celda
+      API --> Client : 403/404/409; motivo explícito
+      Client --> UI : Mostrar rechazo
+    end
   end
 else Registrar salida
-  Operador -> UI : Ingresa placa y confirma salida
-  UI -> API : POST /api/accesos/salida
-  API -> Auth : Validar token y rol\nADMINISTRADOR u OPERADOR
-  Auth --> API : Usuario autorizado
-  API -> Servicio : register_exit(placa, operador)
-  Servicio -> DB : Buscar ingreso activo y bloquear registro
-  alt Existe ingreso activo
-    Servicio -> DB : Guardar hora y operador de salida\nfinalizar registro
-    Servicio -> DB : Liberar celda; conservar MANTENIMIENTO si aplica
-    Servicio --> API : Registro finalizado + permanencia
-    API -> DB : COMMIT
-    API --> UI : 200 + hora, celda y duración
-    UI --> Operador : Mostrar salida registrada
-  else No existe ingreso activo
-    Servicio --> API : Error de negocio
-    API --> UI : 404/conflicto; sin cambios
-    UI --> Operador : Mostrar motivo del rechazo
+  Staff -> UI : Ingresa placa y confirma salida
+  UI -> Client : registerExit(placa)
+  Client -> API : POST /api/accesos/salida + Bearer token
+  API -> Auth : Validar token y rol operativo
+  alt Token inválido/vencido o rol CLIENTE
+    Auth --> API : 401 o 403
+    API --> Client : Denegar; no iniciar escritura
+    Client --> UI : Mostrar acceso denegado
+  else ADMINISTRADOR u OPERADOR
+    Auth --> API : Usuario autorizado
+    API -> Servicio : register_exit(placa, operador)
+    Servicio -> DB : BEGIN; buscar y bloquear acceso activo
+    alt Existe ingreso activo
+      Servicio -> DB : Guardar salida, responsable y permanencia
+      Servicio -> DB : Liberar celda normal o conservar MANTENIMIENTO
+      API -> DB : COMMIT
+      API --> Client : 200 + hora, celda y duración
+      Client --> UI : Mostrar salida y actualizar lista
+    else No existe ingreso activo
+      Servicio --> API : Error de negocio
+      API -> DB : ROLLBACK; conservar acceso/celda
+      API --> Client : 404/409; motivo explícito
+      Client --> UI : Mostrar rechazo
+    end
   end
 end
 @enduml

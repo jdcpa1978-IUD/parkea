@@ -19,6 +19,7 @@ export interface UserUpdate {
   email: string | null;
   password?: string;
   rol?: User['rol'];
+  estado?: User['estado'];
 }
 
 export interface Cell {
@@ -103,7 +104,7 @@ export class ApiService {
   users() { return this.getFresh<User[]>('/usuarios'); }
   clients() { return this.getFresh<User[]>('/clientes'); }
   createUser(value: object) { return this.http.post<User>(`${this.base}/usuarios`, value); }
-  updateUser(id: number, value: UserUpdate) {
+  updateUser(id: number, value: Partial<UserUpdate>) {
     return this.http.patch<User>(`${this.base}/usuarios/${id}`, value);
   }
   deactivateUser(id: number) { return this.http.delete<void>(`${this.base}/usuarios/${id}`); }

@@ -13,12 +13,16 @@ from src.models import Role, User, UserStatus
 
 bearer_scheme = HTTPBearer()
 
+UNUSABLE_PASSWORD = "!"
+
 
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
 
 def verify_password(password: str, password_hash: str) -> bool:
+    if password_hash == UNUSABLE_PASSWORD:
+        return False
     try:
         return bcrypt.checkpw(password.encode(), password_hash.encode())
     except ValueError:

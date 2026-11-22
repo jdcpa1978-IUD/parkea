@@ -4,7 +4,7 @@ from types import SimpleNamespace
 from unittest.mock import Mock
 
 from src.main import update_cell
-from src.models import AccessRecord, AccessStatus, Cell, CellStatus
+from src.models import AccessRecord, AccessStatus, Cell, CellStatus, Role
 from src.schemas import CellStatusUpdate
 from src.services.access import _cell_status_after_exit, register_exit
 
@@ -45,7 +45,7 @@ class CellAvailabilityAfterExitTests(unittest.TestCase):
 
         db.scalar.side_effect = scalar
 
-        update_cell(cell.id_celda, CellStatusUpdate(estado=CellStatus.MANTENIMIENTO), db, None)
+        update_cell(cell.id_celda, CellStatusUpdate(estado=CellStatus.MANTENIMIENTO), db, SimpleNamespace(rol=Role.OPERADOR))
         finalized, minutes = register_exit(db, "ABC123", operator_id=3)
 
         self.assertEqual(minutes, 90)

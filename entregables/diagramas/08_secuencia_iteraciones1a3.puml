@@ -1,0 +1,84 @@
+@startuml Secuencia_Iteraciones1a3
+autonumber
+actor "Administrador / Operador" as Staff
+actor "Cliente" as Cliente
+boundary "Angular\nAplicación PARKEA" as UI
+control "ApiService\nHTTP/JSON" as Client
+control "FastAPI\nAPI REST" as API
+control "Autenticación y roles\n(auth.py)" as Auth
+control "Servicio de acceso\n(access.py)" as Acceso
+database "PostgreSQL" as DB
+
+group Iteración 1 - Registrar entrada y salida
+  Staff -> UI : Registra entrada/salida por placa
+  UI -> Client : Solicitar operación
+  Client -> API : POST /api/accesos/{entrada|salida}
+  API -> Auth : Validar token y rol operativo
+  Auth --> API : Usuario autorizado
+  API -> Acceso : Ejecutar operación transaccional
+  Acceso -> DB : Validar mensualidad, vehículo,\nregistro activo y celda
+  alt Entrada válida
+    Acceso -> DB : Crear acceso y ocupar celda
+    DB --> Acceso : Registro confirmado
+    Acceso --> API : Datos del acceso
+    API --> Client : 201 + acceso
+    Client --> UI : Actualizar operación
+  else Salida válida
+    Acceso -> DB : Cerrar acceso y liberar celda
+    DB --> Acceso : Registro confirmado
+    Acceso --> API : Permanencia calculada
+    API --> Client : 200 + salida
+    Client --> UI : Actualizar operación
+  else Error de validación
+    Acceso --> API : Motivo del rechazo
+    API --> Client : Error explícito; sin cambios
+    Client --> UI : Mostrar motivo
+  end
+end
+
+group Iteración 2 - Usuarios y celdas
+  Staff -> UI : Consulta/gestiona usuarios o celdas
+  UI -> Client : Solicitar consulta o cambio
+  Client -> API : GET/POST/PATCH /api/usuarios o /api/celdas
+  API -> Auth : Validar token y rol requerido
+  Auth --> API : Usuario autorizado
+  API -> DB : Consultar o persistir cambios
+  alt Datos válidos y permiso suficiente
+    DB --> API : Resultado
+    API --> Client : 200/201 + datos actualizados
+    Client --> UI : Refrescar directorio/mapa
+  else Datos inválidos, duplicados o sin permiso
+    DB --> API : No persistir
+    API --> Client : Error explícito
+    Client --> UI : Mostrar error
+  end
+end
+
+group Iteración 3 - Gestión de pagos
+  Cliente -> UI : Consulta historial propio
+  UI -> Client : Solicitar pagos
+  Client -> API : GET /api/pagos + Bearer token
+  API -> Auth : Validar identidad y rol
+  Auth --> API : Usuario autenticado
+  API -> DB : Consultar pagos (filtrar cliente autenticado)
+  DB --> API : Historial de pagos
+  API --> Client : 200 + lista de pagos
+  Client --> UI : Mostrar monto, fechas y método
+
+  Staff -> UI : Elige cliente, monto, meses y método
+  UI -> Client : createPayment(datos)
+  Client -> API : POST /api/pagos + Bearer token
+  API -> Auth : Exigir ADMINISTRADOR u OPERADOR
+  Auth --> API : Usuario autorizado
+  API -> DB : Bloquear cliente; validar estado y consultar último vencimiento
+  alt Cliente activo y datos válidos
+    API -> DB : Insertar pago y periodo encadenado
+    DB --> API : Pago persistido
+    API --> Client : 201 + pago y vigencia
+    Client --> UI : Confirmar y refrescar historial/resumen
+  else Cliente inexistente/inactivo o datos inválidos
+    API --> Client : 404/422; no registrar pago
+    Client --> UI : Mostrar error explícito
+  end
+end
+@enduml

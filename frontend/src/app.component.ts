@@ -174,8 +174,10 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   createUser(): void {
+    const { password, ...user } = this.userForm;
     this.api.createUser({
-      ...this.userForm,
+      ...user,
+      ...(user.rol === 'CLIENTE' ? {} : { password }),
       telefono: this.userForm.telefono || null,
       email: this.userForm.email || null,
     }).subscribe({
@@ -183,7 +185,9 @@ export class AppComponent implements OnInit, OnDestroy {
         this.userForm = {
           documento: '', nombre: '', apellido: '', telefono: '', email: '', password: '', rol: 'CLIENTE',
         };
-        this.showSuccess('Usuario creado correctamente.');
+        this.showSuccess(user.rol === 'CLIENTE'
+          ? 'Cliente creado sin acceso. Para habilitar su ingreso, asígnale una contraseña desde Editar.'
+          : 'Usuario creado correctamente.');
         this.loadUsers();
       },
       error: (error: unknown) => this.showError(error),
@@ -241,6 +245,17 @@ export class AppComponent implements OnInit, OnDestroy {
     this.api.deactivateUser(user.id_usuario).subscribe({
       next: () => {
         this.showSuccess('Usuario desactivado.');
+        this.loadUsers();
+      },
+      error: (error: unknown) => this.showError(error),
+    });
+  }
+
+  activateUser(user: User): void {
+    if (!confirm(`¿Activar a ${user.nombre} ${user.apellido}?`)) return;
+    this.api.updateUser(user.id_usuario, { estado: 'ACTIVO' }).subscribe({
+      next: () => {
+        this.showSuccess('Usuario activado.');
         this.loadUsers();
       },
       error: (error: unknown) => this.showError(error),

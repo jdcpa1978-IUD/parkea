@@ -1,52 +1,149 @@
 @startuml Secuencia_Iteracion2_Celdas
 autonumber
 actor "Administrador" as Admin
-actor "Operador" as Operador
-boundary "Angular\nMapa de celdas" as UI
+actor "Operador / Cliente" as Usuario
+boundary "Angular\nInicio de sesión / Mapa" as UI
 control "ApiService" as Client
-control "FastAPI\n/api/celdas" as API
+control "FastAPI\n/auth, /celdas, /accesos" as API
 control "Autenticación y roles\n(auth.py)" as Auth
+control "Servicio de acceso\n(access.py)" as Acceso
 database "PostgreSQL" as DB
 
-Operador -> UI : Abre mapa
-UI -> Client : Solicitar celdas
-Client -> API : GET /api/celdas + Bearer token
-API -> Auth : Validar sesión
-Auth --> API : Usuario autenticado
-API -> DB : Consultar celdas ordenadas por código
-DB --> API : Código, tipo y estado
-API --> Client : 200 + celdas
-Client --> UI : Mostrar mapa y leyenda
+group Autenticación
+  Usuario -> UI : Ingresa documento y contraseña
+  UI -> Client : login(documento, contraseña)
+  Client -> API : POST /api/auth/login
+  API -> DB : Consultar usuario activo
+  DB --> API : Cuenta y hash BCrypt (o inexistente)
+  API -> Auth : Verificar contraseña y estado
+  alt Credenciales correctas y cuenta ACTIVA
+    Auth --> API : Token JWT + usuario
+    API --> Client : 200 + token
+    Client --> UI : Abrir aplicación
+  else Credenciales incorrectas o cuenta INACTIVA
+    Auth --> API : Rechazo de autenticación
+    API --> Client : 401; no emitir token
+    Client --> UI : Mostrar error; permanecer en login
+  end
+end
 
-alt Registrar celda (solo administrador)
+group Consulta del mapa (solo lectura; todos los roles autenticados)
+  Usuario -> UI : Abre o actualiza el mapa
+  UI -> Client : Solicitar celdas
+  Client -> API : GET /api/celdas + Bearer token
+  API -> Auth : Validar token y usuario ACTIVO
+  alt Token inválido/vencido
+    Auth --> API : 401
+    API --> Client : Rechazar; no devolver celdas
+    Client --> UI : Mostrar sesión vencida
+  else Sesión válida
+    Auth --> API : Usuario autenticado (cualquier rol)
+    API -> DB : SELECT celdas ORDER BY codigo_celda
+    DB --> API : Código, tipo y estado
+    API --> Client : 200 + celdas
+    Client --> UI : Mostrar mapa, leyenda y detalles
+  end
+  note over UI,DB
+  Consultar o seleccionar una celda no asigna,
+  ocupa ni libera plazas.
+  end note
+end
+
+group Registrar una celda (solo administrador)
   Admin -> UI : Ingresa código y tipo
   UI -> Client : createCell(datos)
-  Client -> API : POST /api/celdas
-  API -> Auth : Validar rol ADMINISTRADOR
-  API -> DB : Insertar celda
-  alt Código nuevo y tipo válido
-    DB --> API : Celda creada
-    API --> Client : 201 + celda
-    Client --> UI : Actualizar mapa
-  else Código duplicado o inválido
-    DB --> API : Conflicto/validación
-    API --> Client : Error explícito; rollback
-    Client --> UI : Mostrar error
+  Client -> API : POST /api/celdas + Bearer token
+  API -> Auth : Validar token y rol ADMINISTRADOR
+  alt Token inválido o rol insuficiente
+    Auth --> API : 401 o 403
+    API --> Client : Denegar; sin escritura
+    Client --> UI : Mostrar acceso denegado
+  else Usuario autorizado
+    Auth --> API : ADMINISTRADOR
+    API -> DB : BEGIN; INSERT celda
+    alt Código nuevo y tipo válido
+      API -> DB : COMMIT
+      DB --> API : Celda creada
+      API --> Client : 201 + celda
+      Client --> UI : Actualizar mapa
+    else Código duplicado o datos inválidos
+      DB --> API : IntegrityError/validación
+      API -> DB : ROLLBACK
+      API --> Client : 409/422; no crear celda
+      Client --> UI : Mostrar error
+    end
   end
-else Cambiar estado (solo administrador)
+end
+
+group Cambiar estado administrable (solo administrador)
   Admin -> UI : Selecciona mantenimiento o habilitar
   UI -> Client : updateCell(id, estado)
-  Client -> API : PATCH /api/celdas/{id}
-  API -> Auth : Validar rol ADMINISTRADOR
-  API -> DB : Bloquear celda y validar estado activo
-  alt Solicita liberar celda con ingreso activo
-    API --> Client : Conflicto; no modificar
-    Client --> UI : Mostrar error
-  else Cambio permitido
-    API -> DB : Guardar MANTENIMIENTO o DISPONIBLE
-    DB --> API : Celda actualizada
-    API --> Client : 200 + celda
-    Client --> UI : Actualizar estado del mapa
+  Client -> API : PATCH /api/celdas/{id} + Bearer token
+  API -> Auth : Validar token y rol ADMINISTRADOR
+  alt Token inválido o rol insuficiente
+    Auth --> API : 401 o 403
+    API --> Client : Denegar; sin escritura
+    Client --> UI : Mostrar acceso denegado
+  else Usuario autorizado
+    Auth --> API : ADMINISTRADOR
+    API -> DB : BEGIN; bloquear celda FOR UPDATE
+    alt Celda inexistente
+      API -> DB : ROLLBACK explícito
+      API --> Client : 404; sin cambios
+      Client --> UI : Mostrar celda no encontrada
+    else Solicita OCUPADA manualmente
+      API -> DB : ROLLBACK explícito
+      API --> Client : 409; solo el ingreso puede ocupar
+      Client --> UI : Mostrar regla de ocupación
+    else Solicita DISPONIBLE con ingreso activo
+      API -> DB : Consultar acceso activo; ROLLBACK explícito
+      API --> Client : 409; no liberar celda ocupada
+      Client --> UI : Mostrar error; conservar estado
+    else MANTENIMIENTO o DISPONIBLE permitido
+      API -> DB : Actualizar estado administrable
+      API -> DB : COMMIT
+      DB --> API : Celda actualizada
+      API --> Client : 200 + celda
+      Client --> UI : Actualizar mapa y detalle
+    end
+  end
+end
+
+group Asignar y liberar solo dentro del flujo de accesos
+  Usuario -> UI : Operador registra entrada/salida
+  UI -> Client : POST /api/accesos/{entrada|salida}
+  Client -> API : Enviar operación + Bearer token
+  API -> Auth : Exigir ADMINISTRADOR u OPERADOR
+  alt Token inválido o rol insuficiente
+    Auth --> API : 401 o 403
+    API --> Client : Denegar; no iniciar operación de acceso
+    Client --> UI : Mostrar acceso denegado
+  else Operador autorizado
+    Auth --> API : Usuario operativo
+    API -> Acceso : Ejecutar transacción de acceso
+    Acceso -> DB : BEGIN; bloquear vehículo, acceso/celda
+    alt Entrada con cliente activo, mensualidad vigente y celda compatible
+      Acceso -> DB : Crear registro y ocupar celda
+      API -> DB : COMMIT
+      API --> Client : 201 + acceso y celda asignada
+      Client --> UI : Actualizar lista de estancias y mapa
+    else Entrada inválida o no hay celda disponible
+      Acceso --> API : Error de negocio
+      API -> DB : ROLLBACK
+      API --> Client : 403/404/409; sin registro ni ocupación
+      Client --> UI : Mostrar motivo
+    else Salida de acceso activo
+      Acceso -> DB : Finalizar registro y calcular permanencia
+      Acceso -> DB : Liberar celda normal o conservar MANTENIMIENTO
+      API -> DB : COMMIT
+      API --> Client : 200 + salida
+      Client --> UI : Actualizar lista y mapa
+    else No existe ingreso activo para la placa
+      Acceso --> API : Error de negocio
+      API -> DB : ROLLBACK
+      API --> Client : 404/409; sin cambios
+      Client --> UI : Mostrar motivo
+    end
   end
 end
 @enduml

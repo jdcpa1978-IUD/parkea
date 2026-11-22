@@ -17,29 +17,46 @@ rectangle "Sistema PARKEA - Gestión de celdas" {
   usecase "Cambiar a\nmantenimiento" as Mantener
   usecase "Habilitar celda" as Habilitar
   usecase "Validar código único\ny tipo de vehículo" as Validar
-  usecase "Asignar celda compatible\ndurante un ingreso" as Asignar
-  usecase "Actualizar estado al\nregistrar una salida" as Liberar
+  usecase "Registrar entrada" as Entrada
+  usecase "Validar disponibilidad\ny compatibilidad" as ValidarDisponibilidad
+  usecase "Asignar celda al ingreso" as Asignar
+  usecase "Registrar salida" as Salida
+  usecase "Actualizar celda al finalizar\nla salida" as Liberar
 }
 
 Usuario --> Mapa
-Usuario --> Detalle
+Detalle .> Mapa : <<extend>>\n[selecciona una celda]
 Admin --> Crear
 Admin --> Mantener
 Admin --> Habilitar
+Admin --> Entrada
+Admin --> Salida
+Operador --> Entrada
+Operador --> Salida
 Crear .> Validar : <<include>>
-Asignar .> Mapa : <<include>>
-Liberar .> Mapa : <<include>>
+Entrada .> ValidarDisponibilidad : <<include>>
+Entrada .> Asignar : <<include>>
+Salida .> Liberar : <<include>>
+
+note right of Mapa
+La consulta es de solo lectura.
+No asigna, ocupa ni libera celdas.
+end note
 
 note right of Asignar
-La asignación es parte del caso
-de uso de ingreso de Iteración 1.
-Solo el servicio de acceso marca
-una celda como OCUPADA.
+Solo el caso de uso de entrada
+asigna una celda disponible y
+compatible como OCUPADA.
+end note
+
+note bottom of Liberar
+La salida libera una celda normal.
+Si se programó mantenimiento durante
+la ocupación, permanece en MANTENIMIENTO.
 end note
 
 note bottom of Mantener
-Una celda ocupada puede quedar
-marcada para mantenimiento y
-permanece así después de la salida.
+Una celda ocupada puede programarse
+para mantenimiento al registrar su salida.
 end note
 @enduml

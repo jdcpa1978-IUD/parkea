@@ -1,58 +1,143 @@
 @startuml Secuencia_Iteracion2_Usuarios
 autonumber
 actor "Administrador" as Admin
-boundary "Angular\nPantalla Usuarios" as UI
+boundary "Angular\nInicio de sesión / Usuarios" as UI
 control "ApiService" as Client
-control "FastAPI\n/api/usuarios" as API
+control "FastAPI\n/auth y /usuarios" as API
 control "Autenticación y roles\n(auth.py)" as Auth
 database "PostgreSQL" as DB
 
-Admin -> UI : Abre Usuarios
-UI -> Client : Solicitar directorio
-Client -> API : GET /api/usuarios + Bearer token
-API -> Auth : Validar token y rol ADMINISTRADOR
-Auth --> API : Usuario autorizado
-API -> DB : Consultar usuarios ordenados
-DB --> API : Usuarios sin password_hash
-API --> Client : 200 + directorio
-Client --> UI : Mostrar usuarios y estados
+group Autenticación
+  Admin -> UI : Ingresa documento y contraseña
+  UI -> Client : login(documento, contraseña)
+  Client -> API : POST /api/auth/login
+  API -> DB : Consultar usuario activo por documento
+  DB --> API : Usuario y hash BCrypt (o inexistente)
+  API -> Auth : Verificar contraseña y estado
+  alt Credenciales correctas y cuenta ACTIVA
+    Auth --> API : Token JWT + usuario
+    API --> Client : 200 + token
+    Client --> UI : Abrir la aplicación
+  else Credenciales incorrectas o cuenta INACTIVA
+    Auth --> API : Rechazo de autenticación
+    API --> Client : 401; no emitir token
+    Client --> UI : Mostrar error; permanecer en login
+  end
+end
 
-alt Crear usuario
+group Consultar directorio
+  Admin -> UI : Abre Usuarios
+  UI -> Client : Solicitar directorio
+  Client -> API : GET /api/usuarios + Bearer token
+  API -> Auth : Validar token y rol ADMINISTRADOR
+  alt Token inválido/vencido o rol insuficiente
+    Auth --> API : 401 o 403
+    API --> Client : Rechazar consulta; sin datos
+    Client --> UI : Mostrar acceso denegado
+  else Sesión y rol válidos
+    Auth --> API : Usuario autorizado
+    API -> DB : Consultar usuarios ordenados
+    DB --> API : Usuarios sin password_hash
+    API --> Client : 200 + directorio
+    Client --> UI : Mostrar usuarios y estados
+  end
+end
+
+group Crear usuario
   Admin -> UI : Completa formulario y guarda
   UI -> Client : createUser(datos)
-  Client -> API : POST /api/usuarios
-  API -> Auth : Validar rol ADMINISTRADOR
-  API -> DB : Validar unicidad y guardar hash BCrypt
-  alt Datos únicos y válidos
-    DB --> API : Usuario creado
-    API --> Client : 201 + usuario (sin contraseña)
-    Client --> UI : Actualizar directorio
-  else Documento/correo duplicado o datos inválidos
-    DB --> API : Conflicto/validación
-    API --> Client : Error explícito; rollback
-    Client --> UI : Mostrar error sin crear cuenta
+  Client -> API : POST /api/usuarios + Bearer token
+  API -> Auth : Validar token y rol ADMINISTRADOR
+  alt Token inválido/vencido o rol insuficiente
+    Auth --> API : 401 o 403
+    API --> Client : Denegar; no iniciar escritura
+    Client --> UI : Mostrar acceso denegado
+  else Usuario autorizado
+    Auth --> API : ADMINISTRADOR
+    API -> DB : BEGIN; validar unicidad; guardar hash BCrypt
+    alt Datos válidos y únicos
+      API -> DB : INSERT usuario
+      API -> DB : COMMIT
+      DB --> API : Usuario creado
+      API --> Client : 201 + usuario sin contraseña
+      Client --> UI : Actualizar directorio
+    else Documento/correo duplicado o datos inválidos
+      DB --> API : Error de validación/unicidad
+      API -> DB : ROLLBACK
+      API --> Client : 409/422; sin cambios
+      Client --> UI : Mostrar error
+    end
   end
-else Actualizar usuario
-  Admin -> UI : Edita datos y guarda
+end
+
+group Actualizar usuario
+  Admin -> UI : Edita datos; contraseña nueva opcional
   UI -> Client : updateUser(id, cambios)
-  Client -> API : PATCH /api/usuarios/{id}
-  API -> Auth : Validar rol y regla de autoprotección
-  API -> DB : Actualizar campos permitidos
-  note right of DB
-  Si password está vacío o ausente,
-  conservar el hash existente.
-  end note
-  DB --> API : Usuario actualizado
-  API --> Client : 200 + usuario
-  Client --> UI : Actualizar directorio
-else Desactivar usuario
+  Client -> API : PATCH /api/usuarios/{id} + Bearer token
+  API -> Auth : Validar token y rol ADMINISTRADOR
+  alt Token inválido/vencido o rol insuficiente
+    Auth --> API : 401 o 403
+    API --> Client : Denegar; sin cambios
+    Client --> UI : Mostrar acceso denegado
+  else Usuario autorizado
+    Auth --> API : ADMINISTRADOR
+    API -> DB : BEGIN; consultar y bloquear cuenta objetivo
+    alt Usuario inexistente
+      API -> DB : ROLLBACK
+      API --> Client : 404; sin cambios
+      Client --> UI : Mostrar usuario no encontrado
+    else Admin intenta cambiar su propio rol/estado
+      API -> DB : ROLLBACK explícito; descartar cambios
+      API --> Client : 409; sin cambios
+      Client --> UI : Mostrar restricción
+    else Cambio permitido
+      opt Se proporciona contraseña nueva
+        API -> Auth : Calcular hash BCrypt
+        Auth --> API : Hash de contraseña
+        API -> DB : Actualizar hash
+      end
+      note right of DB
+      Si password se omite o está vacío,
+      el hash anterior se conserva.
+      end note
+      API -> DB : Actualizar campos permitidos
+      alt Datos válidos y únicos
+        API -> DB : COMMIT
+        DB --> API : Usuario actualizado
+        API --> Client : 200 + usuario
+        Client --> UI : Refrescar directorio
+      else Correo duplicado o validación fallida
+        DB --> API : IntegrityError/validación
+        API -> DB : ROLLBACK
+        API --> Client : 409/422; sin cambios parciales
+        Client --> UI : Mostrar error
+      end
+    end
+  end
+end
+
+group Desactivar usuario
   Admin -> UI : Confirma desactivación
   UI -> Client : deactivateUser(id)
-  Client -> API : DELETE /api/usuarios/{id}
-  API -> Auth : Validar rol y evitar auto-desactivación
-  API -> DB : Cambiar estado a INACTIVO
-  DB --> API : Actualización confirmada
-  API --> Client : 204
-  Client --> UI : Mostrar usuario INACTIVO
+  Client -> API : DELETE /api/usuarios/{id} + Bearer token
+  API -> Auth : Validar token y rol ADMINISTRADOR
+  alt Token inválido/vencido o rol insuficiente
+    Auth --> API : 401 o 403
+    API --> Client : Denegar; no iniciar escritura
+    Client --> UI : Mostrar acceso denegado
+  else Usuario autorizado
+    Auth --> API : ADMINISTRADOR
+    API -> DB : BEGIN; consultar cuenta objetivo
+    alt Usuario inexistente o el administrador se desactiva a sí mismo
+      API -> DB : ROLLBACK explícito
+      API --> Client : 404/409; sin cambios
+      Client --> UI : Mostrar motivo
+    else Cuenta desactivable
+      API -> DB : Cambiar estado a INACTIVO
+      API -> DB : COMMIT
+      API --> Client : 204
+      Client --> UI : Mostrar usuario INACTIVO
+    end
+  end
 end
 @enduml

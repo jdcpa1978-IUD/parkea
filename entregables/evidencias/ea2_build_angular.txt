@@ -1,0 +1,20 @@
+PARKEA EA2 - Angular build evidence
+Date: 2026-11-22
+$ npm run build
+
+> parkea-frontend@1.0.0 build
+> ng build
+
+> Building...
+√ Building...
+Initial chunk files   | Names         |  Raw size | Estimated transfer size
+main-VK5JZPSI.js      | main          | 272.81 kB |                71.13 kB
+polyfills-5CFQRCPP.js | polyfills     |  34.59 kB |                11.33 kB
+styles-EHWSW5YO.css   | styles        |  30.70 kB |                 4.87 kB
+
+                      | Initial total | 338.10 kB |                87.34 kB
+
+Application bundle generation complete. [2.575 seconds] - 2026-11-22T20:43:34.798Z
+
+Output location: C:\Users\jdcpa\OneDrive\Documents\Parkea_app\frontend\dist\parkea
+

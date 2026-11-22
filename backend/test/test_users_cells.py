@@ -2,13 +2,16 @@ import unittest
 from unittest.mock import Mock, patch
 
 from fastapi import HTTPException
+from pydantic import ValidationError
 from sqlalchemy.exc import IntegrityError
 
+from src.auth import UNUSABLE_PASSWORD, verify_password
 from src.main import (
     create_cell,
     create_user,
     dashboard,
     deactivate_user,
+    login,
     update_cell,
     update_user,
 )
@@ -22,7 +25,7 @@ from src.models import (
     UserStatus,
     VehicleType,
 )
-from src.schemas import CellCreate, CellStatusUpdate, UserCreate, UserUpdate
+from src.schemas import CellCreate, CellStatusUpdate, LoginInput, UserCreate, UserUpdate
 
 
 def integrity_error():
@@ -42,6 +45,67 @@ def make_user(user_id, role=Role.ADMINISTRADOR, status=UserStatus.ACTIVO):
 
 
 class UserAdministrationTests(unittest.TestCase):
+    def test_client_without_password_cannot_log_in_until_password_assigned(self):
+        db = Mock()
+        admin = make_user(1)
+        client = create_user(
+            UserCreate(documento="123", nombre="Ana", apellido="Pérez", rol=Role.CLIENTE),
+            db,
+            admin,
+        )
+        client.id_usuario = 2
+        client.estado = UserStatus.ACTIVO
+        self.assertEqual(client.password_hash, UNUSABLE_PASSWORD)
+        db.scalar.return_value = client
+        with self.assertRaises(HTTPException) as raised:
+            login(LoginInput(documento="123", password="any-password"), db)
+        self.assertEqual(raised.exception.status_code, 401)
+
+        db.get.return_value = client
+        update_user(2, UserUpdate(password="password-123"), db, admin)
+        self.assertTrue(verify_password("password-123", client.password_hash))
+        self.assertEqual(login(LoginInput(documento="123", password="password-123"), db)["user"].rol, Role.CLIENTE)
+
+    def test_staff_creation_requires_valid_password(self):
+        for role in (Role.ADMINISTRADOR, Role.OPERADOR):
+            for password in (None, "", "short", "á" * 37):
+                with self.subTest(role=role, password=password), self.assertRaises(ValidationError):
+                    UserCreate(documento="123", nombre="Ana", apellido="Pérez", rol=role, password=password)
+
+    def test_promoting_client_without_password_requires_password(self):
+        db = Mock()
+        client = make_user(2, role=Role.CLIENTE)
+        client.password_hash = UNUSABLE_PASSWORD
+        db.get.return_value = client
+        with self.assertRaises(HTTPException) as raised:
+            update_user(2, UserUpdate(rol=Role.OPERADOR), db, make_user(1))
+        self.assertEqual(raised.exception.status_code, 422)
+        self.assertEqual(client.rol, Role.CLIENTE)
+        db.rollback.assert_called_once()
+        db.commit.assert_not_called()
+
+        update_user(2, UserUpdate(rol=Role.OPERADOR, password="password-123"), db, make_user(1))
+        self.assertEqual(client.rol, Role.OPERADOR)
+        self.assertTrue(verify_password("password-123", client.password_hash))
+
+    def test_reactivation_restores_login_only_with_existing_password(self):
+        db = Mock()
+        admin = make_user(1)
+        client = make_user(2, role=Role.CLIENTE, status=UserStatus.INACTIVO)
+        client.password_hash = UNUSABLE_PASSWORD
+        db.get.return_value = client
+        db.scalar.return_value = client
+        update_user(2, UserUpdate(estado=UserStatus.ACTIVO), db, admin)
+        self.assertEqual(client.estado, UserStatus.ACTIVO)
+        with self.assertRaises(HTTPException):
+            login(LoginInput(documento=client.documento, password="password-123"), db)
+        update_user(2, UserUpdate(password="password-123"), db, admin)
+        deactivate_user(2, db, admin)
+        with self.assertRaises(HTTPException):
+            login(LoginInput(documento=client.documento, password="password-123"), db)
+        update_user(2, UserUpdate(estado=UserStatus.ACTIVO), db, admin)
+        self.assertEqual(login(LoginInput(documento=client.documento, password="password-123"), db)["user"].estado, UserStatus.ACTIVO)
+
     def test_create_user_hashes_password_and_trims_names(self):
         db = Mock()
         admin = make_user(1)
@@ -116,6 +180,7 @@ class UserAdministrationTests(unittest.TestCase):
 
         self.assertEqual(raised.exception.status_code, 409)
         db.commit.assert_not_called()
+        db.rollback.assert_called_once()
 
     def test_deactivate_user_is_logical_and_cannot_deactivate_self(self):
         db = Mock()
@@ -135,9 +200,30 @@ class UserAdministrationTests(unittest.TestCase):
 
         self.assertEqual(raised.exception.status_code, 409)
         db.commit.assert_not_called()
+        db.rollback.assert_called_once()
 
 
 class CellAdministrationTests(unittest.TestCase):
+    def test_operator_can_send_available_and_occupied_cells_to_maintenance(self):
+        for state in (CellStatus.DISPONIBLE, CellStatus.OCUPADA):
+            with self.subTest(state=state):
+                db = Mock()
+                cell = Cell(id_celda=7, codigo_celda="A-07", tipo_celda=VehicleType.AUTOMOVIL, estado=state)
+                db.scalar.return_value = cell
+                update_cell(7, CellStatusUpdate(estado=CellStatus.MANTENIMIENTO), db, make_user(2, Role.OPERADOR))
+                self.assertEqual(cell.estado, CellStatus.MANTENIMIENTO)
+                db.commit.assert_called_once()
+
+    def test_operator_cannot_reenable_cell_or_mark_it_occupied(self):
+        for state in (CellStatus.DISPONIBLE, CellStatus.OCUPADA):
+            with self.subTest(state=state):
+                db = Mock()
+                with self.assertRaises(HTTPException) as raised:
+                    update_cell(7, CellStatusUpdate(estado=state), db, make_user(2, Role.OPERADOR))
+                self.assertEqual(raised.exception.status_code, 403)
+                db.commit.assert_not_called()
+                db.rollback.assert_called_once()
+
     def test_dashboard_counts_active_accesses_as_occupied_cells(self):
         db = Mock()
         db.scalar.side_effect = [8, 2, 2, 4]
@@ -200,6 +286,7 @@ class CellAdministrationTests(unittest.TestCase):
         self.assertEqual(raised.exception.status_code, 409)
         self.assertEqual(cell.estado, CellStatus.OCUPADA)
         db.commit.assert_not_called()
+        db.rollback.assert_called_once()
 
     def test_occupied_cell_can_be_marked_for_maintenance(self):
         db = Mock()
