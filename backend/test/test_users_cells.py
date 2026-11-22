@@ -5,10 +5,11 @@ from fastapi import HTTPException
 from pydantic import ValidationError
 from sqlalchemy.exc import IntegrityError
 
-from src.auth import UNUSABLE_PASSWORD, verify_password
+from src.auth import UNUSABLE_PASSWORD, hash_password, verify_password
 from src.main import (
     create_cell,
     create_user,
+    create_vehicle_with_new_client,
     dashboard,
     deactivate_user,
     login,
@@ -25,7 +26,7 @@ from src.models import (
     UserStatus,
     VehicleType,
 )
-from src.schemas import CellCreate, CellStatusUpdate, LoginInput, UserCreate, UserUpdate
+from src.schemas import CellCreate, CellStatusUpdate, LoginInput, UserCreate, UserUpdate, VehicleWithNewClientCreate
 
 
 def integrity_error():
@@ -45,7 +46,25 @@ def make_user(user_id, role=Role.ADMINISTRADOR, status=UserStatus.ACTIVO):
 
 
 class UserAdministrationTests(unittest.TestCase):
-    def test_client_without_password_cannot_log_in_until_password_assigned(self):
+    def test_staff_login_remains_available(self):
+        db = Mock()
+        operator = make_user(2, role=Role.OPERADOR)
+        operator.password_hash = hash_password("password-123")
+        db.scalar.return_value = operator
+        self.assertEqual(login(LoginInput(documento=operator.documento, password="password-123"), db)["user"].rol, Role.OPERADOR)
+
+    def test_vehicle_registration_creates_client_without_login_credentials(self):
+        db = Mock()
+        payload = VehicleWithNewClientCreate(
+            placa="ABC123",
+            tipo_vehiculo=VehicleType.AUTOMOVIL,
+            cliente={"documento": "123", "nombre_completo": "Ana Pérez"},
+        )
+        result = create_vehicle_with_new_client(payload, db, make_user(1))
+        self.assertEqual(result["cliente"].password_hash, UNUSABLE_PASSWORD)
+        self.assertNotIn("clave_temporal", result)
+
+    def test_client_cannot_log_in_or_be_assigned_password(self):
         db = Mock()
         admin = make_user(1)
         client = create_user(
@@ -62,9 +81,15 @@ class UserAdministrationTests(unittest.TestCase):
         self.assertEqual(raised.exception.status_code, 401)
 
         db.get.return_value = client
-        update_user(2, UserUpdate(password="password-123"), db, admin)
-        self.assertTrue(verify_password("password-123", client.password_hash))
-        self.assertEqual(login(LoginInput(documento="123", password="password-123"), db)["user"].rol, Role.CLIENTE)
+        with self.assertRaises(HTTPException) as raised:
+            update_user(2, UserUpdate(password="password-123"), db, admin)
+        self.assertEqual(raised.exception.status_code, 422)
+        client.password_hash = hash_password("password-123")
+        with self.assertRaises(HTTPException) as raised:
+            login(LoginInput(documento="123", password="password-123"), db)
+        self.assertEqual(raised.exception.status_code, 401)
+        with self.assertRaises(ValidationError):
+            UserCreate(documento="123", nombre="Ana", apellido="Pérez", rol=Role.CLIENTE, password="password-123")
 
     def test_staff_creation_requires_valid_password(self):
         for role in (Role.ADMINISTRADOR, Role.OPERADOR):
@@ -88,7 +113,7 @@ class UserAdministrationTests(unittest.TestCase):
         self.assertEqual(client.rol, Role.OPERADOR)
         self.assertTrue(verify_password("password-123", client.password_hash))
 
-    def test_reactivation_restores_login_only_with_existing_password(self):
+    def test_reactivating_client_does_not_restore_login(self):
         db = Mock()
         admin = make_user(1)
         client = make_user(2, role=Role.CLIENTE, status=UserStatus.INACTIVO)
@@ -99,12 +124,13 @@ class UserAdministrationTests(unittest.TestCase):
         self.assertEqual(client.estado, UserStatus.ACTIVO)
         with self.assertRaises(HTTPException):
             login(LoginInput(documento=client.documento, password="password-123"), db)
-        update_user(2, UserUpdate(password="password-123"), db, admin)
+        client.password_hash = hash_password("password-123")
         deactivate_user(2, db, admin)
         with self.assertRaises(HTTPException):
             login(LoginInput(documento=client.documento, password="password-123"), db)
         update_user(2, UserUpdate(estado=UserStatus.ACTIVO), db, admin)
-        self.assertEqual(login(LoginInput(documento=client.documento, password="password-123"), db)["user"].estado, UserStatus.ACTIVO)
+        with self.assertRaises(HTTPException):
+            login(LoginInput(documento=client.documento, password="password-123"), db)
 
     def test_create_user_hashes_password_and_trims_names(self):
         db = Mock()
@@ -137,7 +163,7 @@ class UserAdministrationTests(unittest.TestCase):
             nombre="Ana",
             apellido="Pérez",
             password="password-123",
-            rol=Role.CLIENTE,
+            rol=Role.OPERADOR,
         )
 
         with patch("src.main.hash_password", return_value="bcrypt-hash"):

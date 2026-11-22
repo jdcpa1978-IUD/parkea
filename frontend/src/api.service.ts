@@ -70,11 +70,25 @@ export interface Dashboard {
 export interface Payment {
   id_pago: number;
   id_usuario: number;
-  monto: number;
+  monto: string;
   fecha_pago: string;
   fecha_inicio_vencimiento: string;
   fecha_fin_vencimiento: string;
   metodo_pago: string;
+}
+
+export interface ClientCoverage {
+  id_usuario: number;
+  documento: string;
+  nombre: string;
+  apellido: string;
+  estado: User['estado'];
+  vigente: boolean;
+}
+
+export interface ClientHistory {
+  pagos: Payment[];
+  accesos: AccessRecord[];
 }
 
 export interface Incident {
@@ -103,6 +117,8 @@ export class ApiService {
   dashboard() { return this.getFresh<Dashboard>('/dashboard'); }
   users() { return this.getFresh<User[]>('/usuarios'); }
   clients() { return this.getFresh<User[]>('/clientes'); }
+  clientCoverage() { return this.getFresh<ClientCoverage[]>('/clientes/vigencias'); }
+  clientHistory(id: number) { return this.getFresh<ClientHistory>(`/clientes/${id}/historial`); }
   createUser(value: object) { return this.http.post<User>(`${this.base}/usuarios`, value); }
   updateUser(id: number, value: Partial<UserUpdate>) {
     return this.http.patch<User>(`${this.base}/usuarios/${id}`, value);
@@ -111,7 +127,7 @@ export class ApiService {
   vehicles() { return this.getFresh<Vehicle[]>('/vehiculos'); }
   createVehicle(value: object) { return this.http.post<Vehicle>(`${this.base}/vehiculos`, value); }
   createVehicleWithNewClient(value: object) {
-    return this.http.post<{ vehiculo: Vehicle; cliente: User; clave_temporal: string }>(
+    return this.http.post<{ vehiculo: Vehicle; cliente: User }>(
       `${this.base}/vehiculos/registro-completo`, value,
     );
   }

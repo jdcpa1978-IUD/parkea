@@ -3,7 +3,7 @@
   <rect x="0" y="0" width="1200" height="68" fill="#172554"/>
   <text x="34" y="44" fill="#fff" font-family="Arial,sans-serif" font-size="24" font-weight="700">PARKEA</text>
   <text x="110" y="43" fill="#cbd5e1" font-family="Arial,sans-serif" font-size="15">Gestión de parqueadero</text>
-  <text x="1060" y="42" fill="#fff" font-family="Arial,sans-serif" font-size="14">Operador ▾</text>
+  <text x="1060" y="42" fill="#fff" font-family="Arial,sans-serif" font-size="14">Administrador ▾</text>
   <rect x="0" y="68" width="220" height="692" fill="#fff"/>
   <text x="30" y="126" fill="#64748b" font-family="Arial,sans-serif" font-size="12" font-weight="700">MENÚ PRINCIPAL</text>
   <text x="30" y="174" fill="#475569" font-family="Arial,sans-serif" font-size="16">Resumen general</text>
@@ -42,7 +42,7 @@
   <text x="794" y="602" fill="#475569" font-family="Arial,sans-serif" font-size="12" font-weight="700">VIGENCIA HASTA</text>
   <text x="1001" y="602" fill="#475569" font-family="Arial,sans-serif" font-size="12" font-weight="700">MÉTODO</text>
   <path d="M278 620H1140" stroke="#e2e8f0"/>
-  <text x="294" y="651" fill="#334155" font-family="Arial,sans-serif" font-size="13">Cliente de prueba</text>
+  <text x="294" y="651" fill="#334155" font-family="Arial,sans-serif" font-size="13">12</text>
   <text x="468" y="651" fill="#334155" font-family="Arial,sans-serif" font-size="13">$120.000</text>
   <text x="615" y="651" fill="#334155" font-family="Arial,sans-serif" font-size="13">01/12/2026</text>
   <text x="794" y="651" fill="#334155" font-family="Arial,sans-serif" font-size="13">31/12/2026</text>

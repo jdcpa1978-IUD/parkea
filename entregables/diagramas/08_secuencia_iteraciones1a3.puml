@@ -1,7 +1,6 @@
 @startuml Secuencia_Iteraciones1a3
 autonumber
 actor "Administrador / Operador" as Staff
-actor "Cliente" as Cliente
 boundary "Angular\nAplicación PARKEA" as UI
 control "ApiService\nHTTP/JSON" as Client
 control "FastAPI\nAPI REST" as API
@@ -55,12 +54,12 @@ group Iteración 2 - Usuarios y celdas
 end
 
 group Iteración 3 - Gestión de pagos
-  Cliente -> UI : Consulta historial propio
+  Staff -> UI : Consulta historial reciente
   UI -> Client : Solicitar pagos
   Client -> API : GET /api/pagos + Bearer token
   API -> Auth : Validar identidad y rol
   Auth --> API : Usuario autenticado
-  API -> DB : Consultar pagos (filtrar cliente autenticado)
+  API -> DB : Consultar últimos 100 pagos
   DB --> API : Historial de pagos
   API --> Client : 200 + lista de pagos
   Client --> UI : Mostrar monto, fechas y método

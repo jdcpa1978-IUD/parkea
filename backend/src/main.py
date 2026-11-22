@@ -1,5 +1,4 @@
 import calendar
-import secrets
 from datetime import date, timedelta
 from decimal import Decimal
 from typing import Annotated
@@ -38,6 +37,8 @@ from src.schemas import (
     CellCreate,
     CellOut,
     CellStatusUpdate,
+    ClientCoverageOut,
+    ClientHistoryOut,
     EntryInput,
     ExitInput,
     IncidentCreate,
@@ -99,6 +100,7 @@ def login(payload: LoginInput, db: Db):
     if (
         user is None
         or user.estado != UserStatus.ACTIVO
+        or user.rol == Role.CLIENTE
         or not verify_password(payload.password, user.password_hash)
     ):
         raise HTTPException(status_code=401, detail="Documento o contraseña incorrectos")
@@ -117,31 +119,6 @@ def me(current_user: Authenticated):
 @app.get("/api/dashboard")
 def dashboard(db: Db, current_user: Authenticated):
     today = date.today()
-    if current_user.rol == Role.CLIENTE:
-        return {
-            "celdas_totales": 0,
-            "celdas_ocupadas": 0,
-            "ingresos_activos": db.scalar(
-                select(func.count())
-                .select_from(AccessRecord)
-                .join(Vehicle)
-                .where(
-                    Vehicle.id_usuario == current_user.id_usuario,
-                    AccessRecord.estado_registro == AccessStatus.INGRESO_ACTIVO,
-                )
-            )
-            or 0,
-            "mensualidades_vigentes": db.scalar(
-                select(func.count())
-                .select_from(MonthlyPayment)
-                .where(
-                    MonthlyPayment.id_usuario == current_user.id_usuario,
-                    MonthlyPayment.fecha_inicio_vencimiento <= today,
-                    MonthlyPayment.fecha_fin_vencimiento >= today,
-                )
-            )
-            or 0,
-        }
     return {
         "celdas_totales": db.scalar(select(func.count()).select_from(Cell)) or 0,
         "celdas_ocupadas": db.scalar(
@@ -223,8 +200,15 @@ def update_user(user_id: int, payload: UserUpdate, db: Db, current_user: Admin):
     ):
         db.rollback()
         raise HTTPException(status_code=422, detail="Asigne una contraseña para este rol")
+    if "password" in changes and changes.get("rol", user.rol) == Role.CLIENTE:
+        db.rollback()
+        raise HTTPException(status_code=422, detail="Los clientes no tienen acceso al sistema")
     if "password" in changes:
-        user.password_hash = hash_password(changes.pop("password"))
+        password = changes.pop("password")
+        if password is None:
+            db.rollback()
+            raise HTTPException(status_code=422, detail="La contraseña no puede ser nula")
+        user.password_hash = hash_password(password)
     if "email" in changes and changes["email"] is not None:
         changes["email"] = str(changes["email"]).lower()
     for field, value in changes.items():
@@ -254,8 +238,6 @@ def deactivate_user(user_id: int, db: Db, current_user: Admin):
 @app.get("/api/vehiculos", response_model=list[VehicleOut])
 def list_vehicles(db: Db, current_user: Authenticated, placa: str | None = None):
     query = select(Vehicle).order_by(Vehicle.placa)
-    if current_user.rol == Role.CLIENTE:
-        query = query.where(Vehicle.id_usuario == current_user.id_usuario)
     if placa:
         query = query.where(Vehicle.placa == placa.strip().upper())
     return db.scalars(query.limit(100)).all()
@@ -288,12 +270,11 @@ def create_vehicle_with_new_client(
     _: Admin,
 ):
     first_name, surname = payload.cliente.nombre_completo.split(maxsplit=1)
-    temporary_password = secrets.token_urlsafe(18)
     client = User(
         documento=payload.cliente.documento.strip(),
         nombre=first_name,
         apellido=surname,
-        password_hash=hash_password(temporary_password),
+        password_hash=UNUSABLE_PASSWORD,
         rol=Role.CLIENTE,
         estado=UserStatus.ACTIVO,
     )
@@ -310,7 +291,6 @@ def create_vehicle_with_new_client(
     return {
         "vehiculo": vehicle,
         "cliente": client,
-        "clave_temporal": temporary_password,
     }
 
 
@@ -398,6 +378,19 @@ def exit_access(payload: ExitInput, db: Db, operator: Staff):
     }
 
 
+def access_out(record: AccessRecord) -> AccessOut:
+    return AccessOut(
+        id_registro=record.id_registro,
+        id_vehiculo=record.id_vehiculo,
+        placa=record.vehiculo.placa,
+        id_celda=record.id_celda,
+        codigo_celda=record.celda.codigo_celda,
+        fecha_hora_ingreso=record.fecha_hora_ingreso,
+        fecha_hora_salida=record.fecha_hora_salida,
+        estado_registro=record.estado_registro.value,
+    )
+
+
 @app.get("/api/accesos/activos", response_model=list[AccessOut])
 def active_accesses(db: Db, current_user: Authenticated):
     query = (
@@ -406,29 +399,66 @@ def active_accesses(db: Db, current_user: Authenticated):
         .where(AccessRecord.estado_registro == AccessStatus.INGRESO_ACTIVO)
         .order_by(AccessRecord.fecha_hora_ingreso.desc())
     )
-    if current_user.rol == Role.CLIENTE:
-        query = query.join(Vehicle).where(Vehicle.id_usuario == current_user.id_usuario)
     records = db.scalars(query).all()
+    return [access_out(record) for record in records]
+
+
+@app.get("/api/clientes/vigencias", response_model=list[ClientCoverageOut])
+def client_coverage(db: Db, _: Staff):
+    today = date.today()
+    current_payment = (
+        select(MonthlyPayment.id_pago)
+        .where(
+            MonthlyPayment.id_usuario == User.id_usuario,
+            MonthlyPayment.fecha_inicio_vencimiento <= today,
+            MonthlyPayment.fecha_fin_vencimiento >= today,
+        )
+        .exists()
+    )
+    rows = db.execute(
+        select(User, current_payment.label("vigente"))
+        .where(User.rol == Role.CLIENTE)
+        .order_by(User.apellido, User.nombre, User.id_usuario)
+    ).all()
     return [
-        {
-            "id_registro": record.id_registro,
-            "id_vehiculo": record.id_vehiculo,
-            "placa": record.vehiculo.placa,
-            "id_celda": record.id_celda,
-            "codigo_celda": record.celda.codigo_celda,
-            "fecha_hora_ingreso": record.fecha_hora_ingreso,
-            "fecha_hora_salida": record.fecha_hora_salida,
-            "estado_registro": record.estado_registro.value,
-        }
-        for record in records
+        ClientCoverageOut(
+            id_usuario=user.id_usuario,
+            documento=user.documento,
+            nombre=user.nombre,
+            apellido=user.apellido,
+            estado=user.estado,
+            vigente=vigente,
+        )
+        for user, vigente in rows
     ]
+
+
+@app.get("/api/clientes/{client_id}/historial", response_model=ClientHistoryOut)
+def client_history(client_id: int, db: Db, _: Staff):
+    client = db.get(User, client_id)
+    if client is None or client.rol != Role.CLIENTE:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+    payments = db.scalars(
+        select(MonthlyPayment)
+        .where(MonthlyPayment.id_usuario == client_id)
+        .order_by(MonthlyPayment.fecha_pago.desc(), MonthlyPayment.id_pago.desc())
+    ).all()
+    accesses = db.scalars(
+        select(AccessRecord)
+        .join(Vehicle)
+        .where(Vehicle.id_usuario == client_id)
+        .options(joinedload(AccessRecord.vehiculo), joinedload(AccessRecord.celda))
+        .order_by(AccessRecord.fecha_hora_ingreso.desc(), AccessRecord.id_registro.desc())
+    ).all()
+    return ClientHistoryOut(
+        pagos=[PaymentOut.model_validate(payment) for payment in payments],
+        accesos=[access_out(record) for record in accesses],
+    )
 
 
 @app.get("/api/pagos", response_model=list[PaymentOut])
 def list_payments(db: Db, current_user: Authenticated):
     query = select(MonthlyPayment).order_by(MonthlyPayment.fecha_pago.desc())
-    if current_user.rol == Role.CLIENTE:
-        query = query.where(MonthlyPayment.id_usuario == current_user.id_usuario)
     return db.scalars(query.limit(100)).all()
 
 

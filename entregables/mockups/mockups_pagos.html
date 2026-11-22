@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PARKEA | Mockups de mensualidades</title>
+  <link rel="stylesheet" href="../../frontend/src/styles.css">
+  <link rel="stylesheet" href="../../frontend/src/figma-theme.css">
+  <style>
+    [hidden] { display: none !important; }
+    body.scrolled .main-area { padding-top: 12px; }
+  </style>
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar">
+    <div class="brand"><span class="brand-mark small">P</span><span>PARKEA<small>CONTROL DE PARQUEADERO</small></span></div>
+    <p class="nav-label">OPERACIÓN</p>
+    <button class="nav-item"><span>◫</span> Resumen</button>
+    <button class="nav-item staff-only"><span>↔</span> Entradas y salidas</button>
+    <button class="nav-item"><span>▦</span> Mapa de celdas <i class="live-dot"></i></button>
+    <button class="nav-item"><span>▱</span> Vehículos</button>
+    <p class="nav-label">ADMINISTRACIÓN</p>
+    <button class="nav-item selected"><span>$</span> Mensualidades</button>
+    <button class="nav-item staff-only"><span>≡</span> Novedades</button>
+    <button class="nav-item staff-only"><span>♙</span> Usuarios</button>
+    <div class="sidebar-bottom">
+      <div class="profile"><span class="avatar">PP</span><span>Persona de prueba<small id="role">ADMINISTRADOR</small></span></div>
+      <button class="logout">Cerrar sesión <span>↗</span></button>
+    </div>
+  </aside>
+  <main class="main-area">
+    <header class="topbar">
+      <div><p class="eyebrow">PANEL DE CONTROL <span class="live-status"><i></i> EN VIVO</span></p><h1>Pagos de mensualidad</h1></div>
+      <div class="topbar-actions"><span class="today">1 vehículos dentro</span><button class="refresh" aria-label="Actualizar">↻</button></div>
+    </header>
+    <section>
+      <div class="section-intro"><div><h2>Mensualidades</h2><p>Registra pagos y extiende la vigencia automáticamente desde la fecha actual o el último vencimiento.</p></div></div>
+      <article class="panel admin-form staff-only" id="payment-form">
+        <div class="panel-heading"><div><h3>Registrar un pago</h3><p>La próxima mensualidad se encadena sin perder días vigentes.</p></div></div>
+        <form class="form-grid">
+          <label>Cliente<select><option>Cliente de prueba 01 · 100001</option></select></label>
+          <label>Monto<input type="number" value="120000"></label>
+          <label>Meses a pagar<input type="number" value="1"></label>
+          <label>Método de pago<select><option>Efectivo</option></select></label>
+          <div class="form-actions"><button class="primary" type="button">Registrar pago</button></div>
+        </form>
+      </article>
+      <article class="panel staff-only" id="coverage">
+        <div class="panel-heading"><div><h3>Clientes sin mensualidad vigente hoy</h3><p>Incluye pagos vencidos, futuros y clientes sin pagos. El estado de la cuenta se muestra por separado.</p></div></div>
+        <div class="table-wrap">
+          <table><thead><tr><th>CLIENTE</th><th>DOCUMENTO</th><th>ESTADO DE CUENTA</th><th></th></tr></thead>
+            <tbody>
+              <tr><td>Cliente de prueba 01</td><td>100001</td><td><span class="state-tag">ACTIVO</span></td><td><button class="text-button">Ver historial</button></td></tr>
+              <tr><td>Cliente de prueba 02</td><td>100002</td><td><span class="state-tag inactive">INACTIVO</span></td><td><button class="text-button">Ver historial</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
+      <article class="panel staff-only" id="history">
+        <div class="panel-heading"><div><h3>Historial por cliente</h3><p>Consulta todos sus pagos y los accesos de sus vehículos.</p></div></div>
+        <div class="form-grid"><label>Cliente<select id="history-client">
+          <option value="none">Selecciona un cliente</option>
+          <option value="data">Cliente de prueba 01 · 100001 · ACTIVO</option>
+          <option value="empty">Cliente de prueba 02 · 100002 · INACTIVO</option>
+        </select></label></div>
+        <div id="history-results" hidden>
+          <div class="panel-heading"><div><h3>Pagos</h3></div></div>
+          <div class="empty-state compact" id="payments-empty" hidden><p>Este cliente no tiene pagos registrados.</p></div>
+          <div class="table-wrap" id="payments-data">
+            <table><thead><tr><th>FECHA DE PAGO</th><th>MONTO</th><th>VIGENCIA DESDE</th><th>VIGENCIA HASTA</th><th>MÉTODO</th></tr></thead>
+              <tbody><tr><td>22/10/2026 10:00</td><td>$120.000,00</td><td>2026-10-22</td><td>2026-11-21</td><td>EFECTIVO</td></tr></tbody>
+            </table>
+          </div>
+          <div class="panel-heading"><div><h3>Entradas y salidas</h3></div></div>
+          <div class="empty-state compact" id="access-empty" hidden><p>Este cliente no tiene accesos registrados.</p></div>
+          <div class="table-wrap" id="access-data">
+            <table><thead><tr><th>PLACA</th><th>CELDA</th><th>ENTRADA</th><th>SALIDA</th><th>ESTADO</th></tr></thead>
+              <tbody>
+                <tr><td><b class="plate">AAA001</b></td><td>A-01</td><td>21/11/2026 08:15</td><td>21/11/2026 17:30</td><td>FINALIZADO</td></tr>
+                <tr><td><b class="plate">AAA001</b></td><td>A-02</td><td>21/11/2026 17:45</td><td>—</td><td>INGRESO_ACTIVO</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </article>
+      <article class="panel">
+        <div class="panel-heading"><div><h3 id="payment-title">Historial reciente</h3><p id="payment-subtitle">Últimos 100 pagos</p></div></div>
+        <div class="empty-state compact" id="own-empty" hidden><span>$</span><p>No hay pagos registrados.</p></div>
+        <div class="table-wrap" id="recent-data">
+          <table><thead><tr><th class="staff-only">CLIENTE</th><th>MONTO</th><th>VIGENCIA DESDE</th><th>VIGENCIA HASTA</th><th>MÉTODO</th></tr></thead>
+            <tbody><tr><td class="staff-only">1</td><td>$120.000</td><td>2026-10-22</td><td>2026-11-21</td><td>EFECTIVO</td></tr></tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+  </main>
+</div>
+<script>
+  const view = new URLSearchParams(location.search).get('vista') || 'registro';
+  if (view === 'historial' || view === 'historial-vacio') {
+    const empty = view === 'historial-vacio';
+    document.querySelector('#history-client').value = empty ? 'empty' : 'data';
+    document.querySelector('#history-results').hidden = false;
+    document.querySelector('#payments-empty').hidden = !empty;
+    document.querySelector('#payments-data').hidden = empty;
+    document.querySelector('#access-empty').hidden = !empty;
+    document.querySelector('#access-data').hidden = empty;
+  }
+  if (view === 'sin-vigencia' || view === 'historial' || view === 'historial-vacio') {
+    document.body.classList.add('scrolled');
+    document.querySelector('.topbar').hidden = true;
+    document.querySelector('.section-intro').hidden = true;
+    document.querySelector('#payment-form').hidden = true;
+    if (view !== 'sin-vigencia') document.querySelector('#coverage').hidden = true;
+  }
+</script>
+</body>
+</html>

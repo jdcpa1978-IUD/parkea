@@ -32,6 +32,8 @@ class UserCreate(BaseModel):
     def require_staff_password(self):
         if self.rol != Role.CLIENTE and self.password is None:
             raise ValueError("La contraseña es obligatoria para administradores y operadores")
+        if self.rol == Role.CLIENTE and self.password is not None:
+            raise ValueError("Los clientes no tienen acceso al sistema")
         return self
 
 
@@ -134,7 +136,6 @@ class VehicleOut(BaseModel):
 class VehicleWithNewClientOut(BaseModel):
     vehiculo: VehicleOut
     cliente: UserOut
-    clave_temporal: str
 
 
 class CellCreate(BaseModel):
@@ -222,3 +223,17 @@ class AccessOut(BaseModel):
     fecha_hora_salida: datetime | None
     estado_registro: str
     model_config = ConfigDict(from_attributes=True)
+
+
+class ClientCoverageOut(BaseModel):
+    id_usuario: int
+    documento: str
+    nombre: str
+    apellido: str
+    estado: UserStatus
+    vigente: bool
+
+
+class ClientHistoryOut(BaseModel):
+    pagos: list[PaymentOut]
+    accesos: list[AccessOut]

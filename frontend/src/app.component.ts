@@ -4,7 +4,7 @@ import { ChangeDetectorRef, Component, OnDestroy, OnInit, inject } from '@angula
 import { FormsModule } from '@angular/forms';
 import { interval, Subscription } from 'rxjs';
 import {
-  AccessRecord, ApiService, Cell, Dashboard, Incident, Payment, User, UserUpdate, Vehicle,
+  AccessRecord, ApiService, Cell, ClientCoverage, ClientHistory, Dashboard, Incident, Payment, User, UserUpdate, Vehicle,
 } from './api.service';
 
 type Screen = 'dashboard' | 'access' | 'cells' | 'users' | 'vehicles' | 'payments' | 'incidents';
@@ -20,6 +20,8 @@ export class AppComponent implements OnInit, OnDestroy {
   private readonly changeDetector = inject(ChangeDetectorRef);
   private poll?: Subscription;
   private liveDataRequest = 0;
+  private clientCoverageRequest = 0;
+  private clientHistoryRequest = 0;
 
   user: User | null = this.readSessionUser();
   screen: Screen = 'dashboard';
@@ -36,6 +38,12 @@ export class AppComponent implements OnInit, OnDestroy {
   clients: User[] = [];
   vehicles: Vehicle[] = [];
   payments: Payment[] = [];
+  clientCoverage: ClientCoverage[] = [];
+  clientCoverageLoaded = false;
+  clientCoverageLoading = false;
+  selectedHistoryClientId = 0;
+  clientHistory: ClientHistory | null = null;
+  clientHistoryLoading = false;
   incidents: Incident[] = [];
 
   loginForm = { documento: '', password: '' };
@@ -68,6 +76,9 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   get isAdmin(): boolean { return this.user?.rol === 'ADMINISTRADOR'; }
+  get clientsWithoutCoverage(): ClientCoverage[] {
+    return this.clientCoverage.filter((client) => !client.vigente);
+  }
   get selectedCell(): Cell | null {
     return this.cells.find((cell) => cell.id_celda === this.selectedCellId) ?? null;
   }
@@ -114,6 +125,14 @@ export class AppComponent implements OnInit, OnDestroy {
     localStorage.removeItem('parkea_token');
     localStorage.removeItem('parkea_user');
     this.user = null;
+    this.clientCoverageRequest += 1;
+    this.clientHistoryRequest += 1;
+    this.clientCoverage = [];
+    this.clientCoverageLoaded = false;
+    this.clientCoverageLoading = false;
+    this.selectedHistoryClientId = 0;
+    this.clientHistory = null;
+    this.clientHistoryLoading = false;
     this.screen = 'dashboard';
     this.message = '';
   }
@@ -128,7 +147,13 @@ export class AppComponent implements OnInit, OnDestroy {
     this.loadLiveData();
     if (this.isAdmin && (this.screen === 'users' || this.screen === 'vehicles')) this.loadUsers();
     if (this.screen === 'vehicles') this.loadVehicles();
-    if (this.screen === 'payments') this.loadPayments();
+    if (this.screen === 'payments') {
+      this.loadPayments();
+      if (this.user?.rol !== 'CLIENTE') {
+        this.loadClientCoverage();
+        if (this.selectedHistoryClientId) this.loadClientHistory();
+      }
+    }
     if (this.screen === 'incidents') this.loadIncidents();
   }
 
@@ -185,9 +210,7 @@ export class AppComponent implements OnInit, OnDestroy {
         this.userForm = {
           documento: '', nombre: '', apellido: '', telefono: '', email: '', password: '', rol: 'CLIENTE',
         };
-        this.showSuccess(user.rol === 'CLIENTE'
-          ? 'Cliente creado sin acceso. Para habilitar su ingreso, asígnale una contraseña desde Editar.'
-          : 'Usuario creado correctamente.');
+        this.showSuccess('Usuario creado correctamente.');
         this.loadUsers();
       },
       error: (error: unknown) => this.showError(error),
@@ -222,7 +245,7 @@ export class AppComponent implements OnInit, OnDestroy {
       telefono: this.userEditForm.telefono?.trim() || null,
       email: this.userEditForm.email?.trim() || null,
     };
-    if (this.userEditForm.password) update.password = this.userEditForm.password;
+    if (this.userEditForm.rol !== 'CLIENTE' && this.userEditForm.password) update.password = this.userEditForm.password;
     const isCurrentUser = user.id_usuario === this.user?.id_usuario;
     if (!isCurrentUser) update.rol = this.userEditForm.rol;
 
@@ -283,12 +306,10 @@ export class AppComponent implements OnInit, OnDestroy {
           nombre_completo: this.vehicleForm.cliente.nombre_completo.trim(),
         },
       }).subscribe({
-        next: ({ cliente, clave_temporal }) => {
+        next: ({ cliente }) => {
           this.resetVehicleForm(cliente.id_usuario);
           this.loadClients();
-          this.showSuccess(
-            `Cliente ${cliente.nombre} y vehículo registrados. Clave inicial (cópiala; solo se muestra una vez): ${clave_temporal}`,
-          );
+          this.showSuccess(`Cliente ${cliente.nombre} y vehículo registrados.`);
           this.loadVehicles();
         },
         error: (error: unknown) => this.showError(error),
@@ -401,17 +422,34 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   createPayment(): void {
+    const monto = Number(this.paymentForm.monto);
+    if (!Number.isFinite(monto) || monto <= 0) {
+      this.showError('Monto inválido. Debe ser mayor que cero.');
+      return;
+    }
+    if (Number(monto.toFixed(2)) !== monto) {
+      this.showError('Monto inválido. Debe tener máximo dos decimales.');
+      return;
+    }
+    const meses = Number(this.paymentForm.meses);
+    if (!Number.isInteger(meses) || meses < 1 || meses > 24) {
+      this.showError('Meses inválidos. Ingresa un número entero entre 1 y 24.');
+      return;
+    }
+
     this.api.createPayment({
       ...this.paymentForm,
       id_usuario: Number(this.paymentForm.id_usuario),
-      monto: Number(this.paymentForm.monto),
-      meses: Number(this.paymentForm.meses),
+      monto,
+      meses,
     }).subscribe({
       next: (payment) => {
         this.paymentForm = { id_usuario: 0, monto: 0, meses: 1, metodo_pago: 'EFECTIVO' };
         this.showSuccess(`Pago registrado. Vigencia hasta ${payment.fecha_fin_vencimiento}.`);
         this.loadPayments();
         this.loadLiveData();
+        this.loadClientCoverage();
+        if (this.selectedHistoryClientId) this.loadClientHistory();
       },
       error: (error: unknown) => this.showError(error),
     });
@@ -444,7 +482,14 @@ export class AppComponent implements OnInit, OnDestroy {
   private readSessionUser(): User | null {
     try {
       const saved = localStorage.getItem('parkea_user');
-      return saved && localStorage.getItem('parkea_token') ? JSON.parse(saved) as User : null;
+      if (!saved || !localStorage.getItem('parkea_token')) return null;
+      const user = JSON.parse(saved) as User;
+      if (user.rol === 'CLIENTE') {
+        localStorage.removeItem('parkea_user');
+        localStorage.removeItem('parkea_token');
+        return null;
+      }
+      return user;
     } catch {
       localStorage.removeItem('parkea_user');
       localStorage.removeItem('parkea_token');
@@ -528,6 +573,51 @@ export class AppComponent implements OnInit, OnDestroy {
     this.api.payments().subscribe({
       next: (items) => { this.payments = items; },
       error: (error: unknown) => this.showError(error),
+    });
+  }
+
+  private loadClientCoverage(): void {
+    const requestId = ++this.clientCoverageRequest;
+    this.clientCoverageLoaded = false;
+    this.clientCoverageLoading = true;
+    this.api.clientCoverage().subscribe({
+      next: (clients) => {
+        if (requestId !== this.clientCoverageRequest) return;
+        this.clientCoverage = clients;
+        this.clientCoverageLoaded = true;
+        this.clientCoverageLoading = false;
+      },
+      error: (error: unknown) => {
+        if (requestId !== this.clientCoverageRequest) return;
+        this.clientCoverageLoading = false;
+        this.showError(error);
+      },
+    });
+  }
+
+  showClientHistory(clientId: number): void {
+    this.selectedHistoryClientId = clientId;
+    this.loadClientHistory();
+  }
+
+  loadClientHistory(): void {
+    const clientId = Number(this.selectedHistoryClientId);
+    const requestId = ++this.clientHistoryRequest;
+    this.clientHistory = null;
+    this.clientHistoryLoading = false;
+    if (!clientId) return;
+    this.clientHistoryLoading = true;
+    this.api.clientHistory(clientId).subscribe({
+      next: (history) => {
+        if (requestId !== this.clientHistoryRequest) return;
+        this.clientHistory = history;
+        this.clientHistoryLoading = false;
+      },
+      error: (error: unknown) => {
+        if (requestId !== this.clientHistoryRequest) return;
+        this.clientHistoryLoading = false;
+        this.showError(error);
+      },
     });
   }
 

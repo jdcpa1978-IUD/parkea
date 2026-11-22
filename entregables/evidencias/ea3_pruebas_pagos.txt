@@ -1,0 +1,44 @@
+﻿PARKEA - Pruebas automatizadas de usuarios y pagos
+Fecha: 2026-11-22T18:32:14-05:00
+Comando desde backend: .\.venv\Scripts\python.exe -m unittest test.test_users_cells test.test_payments -v
+Alcance: pruebas unitarias simuladas y solicitudes HTTP a la API usando SQLite en memoria.
+No verifica navegador, PostgreSQL ni concurrencia. No modifica datos de la aplicacion.
+
+test_active_cell_cannot_be_released_manually (test.test_users_cells.CellAdministrationTests.test_active_cell_cannot_be_released_manually) ... ok
+test_create_cell_normalizes_code (test.test_users_cells.CellAdministrationTests.test_create_cell_normalizes_code) ... ok
+test_create_cell_rolls_back_and_returns_conflict_on_duplicate (test.test_users_cells.CellAdministrationTests.test_create_cell_rolls_back_and_returns_conflict_on_duplicate) ... ok
+test_dashboard_counts_active_accesses_as_occupied_cells (test.test_users_cells.CellAdministrationTests.test_dashboard_counts_active_accesses_as_occupied_cells) ... ok
+test_occupied_cell_can_be_marked_for_maintenance (test.test_users_cells.CellAdministrationTests.test_occupied_cell_can_be_marked_for_maintenance) ... ok
+test_operator_can_send_available_and_occupied_cells_to_maintenance (test.test_users_cells.CellAdministrationTests.test_operator_can_send_available_and_occupied_cells_to_maintenance) ... ok
+test_operator_cannot_reenable_cell_or_mark_it_occupied (test.test_users_cells.CellAdministrationTests.test_operator_cannot_reenable_cell_or_mark_it_occupied) ... ok
+test_admin_cannot_change_own_role (test.test_users_cells.UserAdministrationTests.test_admin_cannot_change_own_role) ... ok
+test_client_cannot_log_in_or_be_assigned_password (test.test_users_cells.UserAdministrationTests.test_client_cannot_log_in_or_be_assigned_password) ... ok
+test_create_user_hashes_password_and_trims_names (test.test_users_cells.UserAdministrationTests.test_create_user_hashes_password_and_trims_names) ... ok
+test_create_user_rolls_back_and_returns_conflict_on_duplicate (test.test_users_cells.UserAdministrationTests.test_create_user_rolls_back_and_returns_conflict_on_duplicate) ... ok
+test_deactivate_user_is_logical_and_cannot_deactivate_self (test.test_users_cells.UserAdministrationTests.test_deactivate_user_is_logical_and_cannot_deactivate_self) ... ok
+test_promoting_client_without_password_requires_password (test.test_users_cells.UserAdministrationTests.test_promoting_client_without_password_requires_password) ... ok
+test_reactivating_client_does_not_restore_login (test.test_users_cells.UserAdministrationTests.test_reactivating_client_does_not_restore_login) ... ok
+test_staff_creation_requires_valid_password (test.test_users_cells.UserAdministrationTests.test_staff_creation_requires_valid_password) ... ok
+test_staff_login_remains_available (test.test_users_cells.UserAdministrationTests.test_staff_login_remains_available) ... ok
+test_update_without_password_preserves_hash (test.test_users_cells.UserAdministrationTests.test_update_without_password_preserves_hash) ... ok
+test_vehicle_registration_creates_client_without_login_credentials (test.test_users_cells.UserAdministrationTests.test_vehicle_registration_creates_client_without_login_credentials) ... ok
+test_consultations_are_denied_to_client (test.test_payments.ClientConsultationTests.test_consultations_are_denied_to_client) ... ok
+test_coverage_includes_boundaries_future_expired_and_inactive_accounts (test.test_payments.ClientConsultationTests.test_coverage_includes_boundaries_future_expired_and_inactive_accounts) ... ok
+test_existing_staff_token_is_rejected_after_role_changes_to_client (test.test_payments.ClientConsultationTests.test_existing_staff_token_is_rejected_after_role_changes_to_client) ... ok
+test_history_contains_all_payments_and_only_own_active_and_finished_accesses (test.test_payments.ClientConsultationTests.test_history_contains_all_payments_and_only_own_active_and_finished_accesses) ... ok
+test_recent_history_limits_results_and_denies_client (test.test_payments.ClientConsultationTests.test_recent_history_limits_results_and_denies_client) ... ok
+test_registration_chains_after_future_period_without_marking_it_current (test.test_payments.ClientConsultationTests.test_registration_chains_after_future_period_without_marking_it_current) ... ok
+test_registration_rejects_invalid_requests_without_creating_payment (test.test_payments.ClientConsultationTests.test_registration_rejects_invalid_requests_without_creating_payment) ... ok
+test_staff_registers_payment_and_it_appears_in_coverage_and_histories (test.test_payments.ClientConsultationTests.test_staff_registers_payment_and_it_appears_in_coverage_and_histories) ... ok
+test_staff_history_is_not_filtered_to_a_single_client (test.test_payments.PaymentHistoryTests.test_staff_history_is_not_filtered_to_a_single_client) ... ok
+test_registration_chains_new_period_after_existing_vigency (test.test_payments.PaymentRegistrationTests.test_registration_chains_new_period_after_existing_vigency) ... ok
+test_registration_rejects_missing_or_inactive_client_without_commit (test.test_payments.PaymentRegistrationTests.test_registration_rejects_missing_or_inactive_client_without_commit) ... ok
+test_registration_starts_today_when_previous_period_expired (test.test_payments.PaymentRegistrationTests.test_registration_starts_today_when_previous_period_expired) ... ok
+test_registration_without_previous_payment_starts_today (test.test_payments.PaymentRegistrationTests.test_registration_without_previous_payment_starts_today) ... ok
+test_add_months_handles_year_boundary_and_short_month (test.test_payments.PaymentValidationTests.test_add_months_handles_year_boundary_and_short_month) ... ok
+test_payment_rejects_non_positive_amount_and_invalid_month_range (test.test_payments.PaymentValidationTests.test_payment_rejects_non_positive_amount_and_invalid_month_range) ... ok
+----------------------------------------------------------------------
+Ran 33 tests in 1.532s
+OK
+
+Codigo de salida: 0

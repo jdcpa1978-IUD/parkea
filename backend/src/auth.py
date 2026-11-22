@@ -55,7 +55,7 @@ def get_current_user(
 
     user = db.get(User, user_id)
     db.commit()
-    if user is None or user.estado != UserStatus.ACTIVO:
+    if user is None or user.estado != UserStatus.ACTIVO or user.rol == Role.CLIENTE:
         raise unauthorized
     return user
 
